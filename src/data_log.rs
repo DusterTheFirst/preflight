@@ -2,10 +2,7 @@ use chrono::Local;
 use std::{
     fs::{create_dir_all, File},
     io,
-    path::Path,
     path::PathBuf,
-    time::Instant,
-    time::SystemTime,
 };
 
 pub struct DataLogger {
