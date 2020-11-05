@@ -4,6 +4,8 @@
 //     time::Duration,
 // };
 
+mod data_log;
+
 // use log::trace;
 // use nalgebra::Vector3;
 // use ncollide3d::shape::{Cuboid, ShapeHandle};
