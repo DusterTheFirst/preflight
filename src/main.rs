@@ -13,52 +13,40 @@ use nphysics3d::{
     joint::DefaultJointConstraintSet,
     math::ForceType,
     object::{
-        Body, BodyPartHandle, ColliderDesc, DefaultBodySet, DefaultColliderSet, RigidBody,
-        RigidBodyDesc,
+        Body, BodyPartHandle, Collider, ColliderDesc, DefaultBodySet, DefaultColliderSet,
+        RigidBody, RigidBodyDesc,
     },
     world::{DefaultGeometricalWorld, DefaultMechanicalWorld},
 };
-use serde::{ser::SerializeStruct, Serialize, Serializer};
+use timescale_data::timescale_data;
 
 mod data_log;
 
-#[derive(Debug, Clone, Serialize)]
-struct Datapoint {
-    #[serde(serialize_with = "vector_ser")]
+#[timescale_data]
+#[derive(Debug, Clone)]
+struct VectorDatapoints {
     position: Vector3<f64>,
 }
 
-fn vector_ser<S: Serializer>(vec: &Vector3<f64>, serializer: S) -> Result<S::Ok, S::Error> {
-    let mut s = serializer.serialize_struct("Vector3", 3)?;
-    s.serialize_field("x", &vec[0])?;
-    s.serialize_field("y", &vec[1])?;
-    s.serialize_field("z", &vec[2])?;
-    s.end()
-}
-
-// idk
-struct HeaderSerializer;
-impl Serializer for HeaderSerializer {}
-
 fn main() {
-    let mut logger = DataLogger::<Datapoint>::new().unwrap();
+    let mut logger = DataLogger::<VectorDatapoints>::new().unwrap();
 
-    let mut window = Window::new("h");
+    // let mut window = Window::new("h");
 
-    window.set_background_color(0.0, 0.5, 1.0);
+    // window.set_background_color(0.0, 0.5, 1.0);
     // window.set_light(Light::Absolute(Point3::new(100.0, 1000.0, 300.0)));
-    window.set_light(Light::StickToCamera);
-    window.set_framerate_limit(Some(60));
+    // window.set_light(Light::StickToCamera);
+    // window.set_framerate_limit(Some(60));
 
-    let mut camera = ArcBall::new(Point3::new(5.0, 2.0, -1.0), Point3::origin());
-    camera.rebind_drag_button(None);
-    camera.rebind_rotate_button(None);
-    camera.rebind_reset_key(None);
+    // let mut camera = ArcBall::new(Point3::new(5.0, 2.0, -1.0), Point3::origin());
+    // camera.rebind_drag_button(None);
+    // camera.rebind_rotate_button(None);
+    // camera.rebind_reset_key(None);
 
-    let mut c = window.add_cube(1.0, 1.0, 1.0);
-    c.set_color(1.0, 0.0, 0.0);
+    // let mut c = window.add_cube(1.0, 1.0, 1.0);
+    // c.set_color(1.0, 0.0, 0.0);
 
-    window.add_cube(100.0, 1.0, 100.0).set_color(0.0, 1.0, 0.0);
+    // window.add_cube(100.0, 1.0, 100.0).set_color(0.0, 1.0, 0.0);
 
     // PHYSICS
     let mut mechanical_world = DefaultMechanicalWorld::new(Vector3::y() * -9.81);
@@ -83,7 +71,9 @@ fn main() {
 
     let mut time: f64 = 0.0;
 
-    while window.render_with_camera(&mut camera) {
+    loop
+    /* window.render_with_camera(&mut camera) */
+    {
         // c.prepend_to_local_rotation(&rot);
         // c.append_translation(&Translation3::new(0.0, up, 0.0));
 
@@ -98,8 +88,8 @@ fn main() {
         time += mechanical_world.timestep();
 
         let rocket_body: &mut RigidBody<f64> = bodies.rigid_body_mut(rocket_body_handle).unwrap();
-        // let rocket_collider: &mut dyn Body<f32> =
-        //     colliders.get_mut(rocket_collider_handle).unwrap();
+        let rocket_collider: &mut Collider<f64, _> =
+            colliders.get_mut(rocket_collider_handle).unwrap();
 
         rocket_body.apply_force(
             0,
@@ -109,22 +99,20 @@ fn main() {
         );
 
         logger
-            .add_data_point(
+            .add_data_point(VectorDatapoints {
                 time,
-                Datapoint {
-                    position: dbg!(rocket_body.position().translation.vector),
-                },
-            )
+                position: dbg!(rocket_body.position().translation.vector),
+            })
             .unwrap();
 
-        c.set_local_translation(Translation3::from(
-            rocket_body.position().translation.vector.map(|x| x as f32),
-        ));
+        // c.set_local_translation(Translation3::from(
+        //     rocket_body.position().translation.vector.map(|x| x as f32),
+        // ));
 
-        camera.look_at(
-            Point3::new(100.0, 20.0, 0.0),
-            Point3::from(c.data().local_translation().vector),
-        );
-        camera.set_dist(10.0);
+        // camera.look_at(
+        //     Point3::new(100.0, 20.0, 0.0),
+        //     Point3::from(c.data().local_translation().vector),
+        // );
+        // camera.set_dist(10.0);
     }
 }

@@ -16,7 +16,10 @@ chrono = "0.4.19"
 csv = "1.1.4"
 serde = { version = "1.0.117", features = ["derive"] }
 paste = "1.0.2"
-serde_json = "1.0.59"
+timescale_data = { path = "./timescale_data" }
 
 [patch.crates-io]
-csv = { branch = "nested-struct-headers", git = "https://github.com/ilya-epifanov/rust-csv" }
+# csv = { branch = "nested-struct-headers", git = "https://github.com/ilya-epifanov/rust-csv" }
+
+[workspace]
+members = [".", "timescale_data"]

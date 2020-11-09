@@ -9,15 +9,9 @@ use std::{
     path::PathBuf,
 };
 
-#[derive(Debug, Serialize)]
-struct TimescaleData<Datapoint: Debug + Serialize> {
-    time: f64,
-    data_point: Datapoint,
-}
-
 pub struct DataLogger<Datapoint: Debug + Serialize> {
     writer: Writer<File>,
-    data: PhantomData<TimescaleData<Datapoint>>,
+    data: PhantomData<Datapoint>,
 }
 
 impl<Datapoint: Debug + Serialize> DataLogger<Datapoint> {
@@ -42,16 +36,14 @@ impl<Datapoint: Debug + Serialize> DataLogger<Datapoint> {
 
     pub fn from_file(file: File) -> Self {
         Self {
-            writer: WriterBuilder::new().has_headers(false).from_writer(file),
+            writer: WriterBuilder::new().from_writer(file),
             data: PhantomData,
         }
     }
 
-    pub fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> csv::Result<()> {
-        let data = dbg!(TimescaleData { time, data_point });
-
-        dbg!(serde_json::to_string(&data));
-
+    pub fn add_data_point(&mut self, data_point: Datapoint) -> csv::Result<()> {
+        let data = dbg!(data_point);
+        
         self.writer.serialize(data)
     }
 }
