@@ -1,3 +1,5 @@
+use data_log::DataLogger;
+use fields::Fields;
 use kiss3d::{
     camera::ArcBall,
     light::Light,
@@ -17,15 +19,24 @@ use nphysics3d::{
     },
     world::{DefaultGeometricalWorld, DefaultMechanicalWorld},
 };
-use std::{
-    io::{stdout, Write},
-    thread,
-    time::Duration,
-};
+use serde::Serialize;
 
 mod data_log;
 
+#[derive(Debug, Fields, Clone, Serialize)]
+struct Datapoint {
+    position: Vector3<f64>,
+}
+
+pub trait SerializeFlatten {
+    fn serialize_flatten() {
+        
+    }
+}
+
 fn main() {
+    let mut logger = DataLogger::<Datapoint>::new().unwrap();
+
     let mut window = Window::new("h");
 
     window.set_background_color(0.0, 0.5, 1.0);
@@ -64,6 +75,8 @@ fn main() {
 
     let rocket_collider_handle = colliders.insert(rocket_collider);
 
+    let mut time: f64 = 0.0;
+
     while window.render_with_camera(&mut camera) {
         // c.prepend_to_local_rotation(&rot);
         // c.append_translation(&Translation3::new(0.0, up, 0.0));
@@ -76,8 +89,9 @@ fn main() {
             &mut joint_constraints,
             &mut force_generators,
         );
+        time += mechanical_world.timestep();
 
-        let rocket_body: &mut RigidBody<f32> = bodies.rigid_body_mut(rocket_body_handle).unwrap();
+        let rocket_body: &mut RigidBody<f64> = bodies.rigid_body_mut(rocket_body_handle).unwrap();
         // let rocket_collider: &mut dyn Body<f32> =
         //     colliders.get_mut(rocket_collider_handle).unwrap();
 
@@ -88,7 +102,18 @@ fn main() {
             true,
         );
 
-        c.set_local_translation(Translation3::from_vector(rocket_body.position().translation.vector));
+        logger
+            .add_data_point(
+                time,
+                Datapoint {
+                    position: dbg!(rocket_body.position().translation.vector),
+                },
+            )
+            .unwrap();
+
+        c.set_local_translation(Translation3::from(
+            rocket_body.position().translation.vector.map(|x| x as f32),
+        ));
 
         camera.look_at(
             Point3::new(100.0, 20.0, 0.0),
