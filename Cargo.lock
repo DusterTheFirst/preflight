@@ -1529,7 +1529,7 @@ dependencies = [
  "nphysics3d",
  "paste",
  "serde",
- "timescale_data",
+ "timescale",
 ]
 
 [[package]]
@@ -1755,7 +1755,15 @@ dependencies = [
 ]
 
 [[package]]
-name = "timescale_data"
+name = "timescale"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "timescale_derive",
+]
+
+[[package]]
+name = "timescale_derive"
 version = "0.1.0"
 dependencies = [
  "quote 1.0.7",

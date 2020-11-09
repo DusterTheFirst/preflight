@@ -8,13 +8,14 @@ use std::{
     marker::PhantomData,
     path::PathBuf,
 };
+use timescale::Timescale;
 
-pub struct DataLogger<Datapoint: Debug + Serialize> {
+pub struct DataLogger<Datapoint: Timescale> {
     writer: Writer<File>,
     data: PhantomData<Datapoint>,
 }
 
-impl<Datapoint: Debug + Serialize> DataLogger<Datapoint> {
+impl<Datapoint: Timescale> DataLogger<Datapoint> {
     fn find_file() -> io::Result<File> {
         // Look in current directory for existing data dir
         let mut path = PathBuf::new();
@@ -41,9 +42,7 @@ impl<Datapoint: Debug + Serialize> DataLogger<Datapoint> {
         }
     }
 
-    pub fn add_data_point(&mut self, data_point: Datapoint) -> csv::Result<()> {
-        let data = dbg!(data_point);
-        
-        self.writer.serialize(data)
+    pub fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> csv::Result<()> {
+        self.writer.serialize(data_point.with_time(time))
     }
 }

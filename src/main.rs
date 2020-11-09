@@ -18,12 +18,11 @@ use nphysics3d::{
     },
     world::{DefaultGeometricalWorld, DefaultMechanicalWorld},
 };
-use timescale_data::timescale_data;
+use timescale::Timescale;
 
 mod data_log;
 
-#[timescale_data]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Timescale)]
 struct VectorDatapoints {
     position: Vector3<f64>,
 }
@@ -57,17 +56,22 @@ fn main() {
     let mut joint_constraints = DefaultJointConstraintSet::new();
     let mut force_generators = DefaultForceGeneratorSet::new();
 
-    let rocket_body = RigidBodyDesc::new().mass(100.0).build();
+    let rocket_body_handle = bodies.insert(RigidBodyDesc::new().mass(100.0).build());
+    let ground_handle = bodies.insert(RigidBodyDesc::new().gravity_enabled(false).build());
 
-    let rocket_body_handle = bodies.insert(rocket_body);
-
-    let rocket_collider = ColliderDesc::new(ShapeHandle::new(Cuboid::new(Vector3::new(
-        10.0, 10.0, 10.0,
-    ))))
-    .density(1.0)
-    .build(BodyPartHandle(rocket_body_handle, 0));
-
-    let rocket_collider_handle = colliders.insert(rocket_collider);
+    let rocket_collider_handle = colliders.insert(
+        ColliderDesc::new(ShapeHandle::new(Cuboid::new(Vector3::new(
+            10.0, 10.0, 10.0,
+        ))))
+        .density(1.0)
+        .build(BodyPartHandle(rocket_body_handle, 0)),
+    );
+    let ground_collider_handle = colliders.insert(
+        ColliderDesc::new(ShapeHandle::new(Cuboid::new(Vector3::new(
+            100.0, 1.0, 100.0,
+        ))))
+        .build(BodyPartHandle(ground_handle, 0)),
+    );
 
     let mut time: f64 = 0.0;
 
@@ -76,6 +80,19 @@ fn main() {
     {
         // c.prepend_to_local_rotation(&rot);
         // c.append_translation(&Translation3::new(0.0, up, 0.0));
+
+        // Do the do
+        {
+            let rocket_body = bodies.rigid_body_mut(rocket_body_handle).unwrap();
+            let rocket_collider = colliders.get_mut(rocket_collider_handle).unwrap();
+
+            rocket_body.apply_force(
+                0,
+                &Force3::new(Vector3::y() * 100.0, Vector3::new(0.0, 0.0, 0.0)),
+                ForceType::Force,
+                true,
+            );
+        }
 
         // Run the simulation.
         mechanical_world.step(
@@ -87,22 +104,18 @@ fn main() {
         );
         time += mechanical_world.timestep();
 
-        let rocket_body: &mut RigidBody<f64> = bodies.rigid_body_mut(rocket_body_handle).unwrap();
-        let rocket_collider: &mut Collider<f64, _> =
-            colliders.get_mut(rocket_collider_handle).unwrap();
-
-        rocket_body.apply_force(
-            0,
-            &Force3::new(Vector3::y() * 100.0, Vector3::new(0.0, 0.0, 0.0)),
-            ForceType::Force,
-            true,
-        );
-
         logger
-            .add_data_point(VectorDatapoints {
+            .add_data_point(
                 time,
-                position: dbg!(rocket_body.position().translation.vector),
-            })
+                VectorDatapoints {
+                    position: bodies
+                        .rigid_body_mut(rocket_body_handle)
+                        .unwrap()
+                        .position()
+                        .translation
+                        .vector,
+                },
+            )
             .unwrap();
 
         // c.set_local_translation(Translation3::from(

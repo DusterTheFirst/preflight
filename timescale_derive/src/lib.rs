@@ -1,18 +1,10 @@
 use proc_macro::TokenStream;
-use quote::{quote, quote_spanned};
+use quote::{format_ident, quote, quote_spanned};
 use syn::{parse_macro_input, spanned::Spanned, AttributeArgs, Fields, Index, ItemStruct};
 
-#[proc_macro_attribute]
-pub fn timescale_data(args: TokenStream, input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Timescale)]
+pub fn timescale_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
-    let args = parse_macro_input!(args as AttributeArgs);
-
-    if let Some(arg) = args.first() {
-        let len = Index::from(args.len());
-        return TokenStream::from(quote_spanned! {arg.span()=>
-            compile_error!(concat!("this function takes 0 arguments but ", stringify!(#len), " arguments were supplied"));
-        });
-    }
 
     TokenStream::from(match input.fields {
         Fields::Named(fields) => {
@@ -24,20 +16,24 @@ pub fn timescale_data(args: TokenStream, input: TokenStream) -> TokenStream {
                 let name = f.ident;
 
                 quote! {
-                    s.serialize_field(concat!(stringify!(#name), "_x"), &self.#name[0])?;
-                    s.serialize_field(concat!(stringify!(#name), "_y"), &self.#name[1])?;
-                    s.serialize_field(concat!(stringify!(#name), "_z"), &self.#name[2])?;
+                    s.serialize_field(concat!(stringify!(#name), "_x"), &self.data.#name[0])?;
+                    s.serialize_field(concat!(stringify!(#name), "_y"), &self.data.#name[1])?;
+                    s.serialize_field(concat!(stringify!(#name), "_z"), &self.data.#name[2])?;
                 }
             });
 
             let fields_count = serializers.len() + 1;
 
+            let timescale_ident = format_ident!("Timescale{}", name);
+
             quote! {
-                #(#attrs)*
-                #vis struct #name #generics {
+                #[doc(hidden)]
+                #[derive(Debug)]
+                #vis struct  #timescale_ident #generics {
                     /// The time since the start of the simulation that this data point was logged
                     pub time: f64,
-                    #(#fields),*
+                    /// The data for this time point
+                    pub data: #name #generics,
                 }
 
                 #[doc(hidden)]
@@ -46,7 +42,8 @@ pub fn timescale_data(args: TokenStream, input: TokenStream) -> TokenStream {
                     extern crate serde as _serde;
                     use _serde::ser::SerializeStruct;
 
-                    impl _serde::Serialize for #name {
+                    #[automatically_derived]
+                    impl _serde::Serialize for #timescale_ident {
                         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
                         where
                             S: _serde::Serializer,
@@ -55,6 +52,18 @@ pub fn timescale_data(args: TokenStream, input: TokenStream) -> TokenStream {
                             s.serialize_field("time", &self.time)?;
                             #(#serializers)*
                             s.end()
+                        }
+                    }
+
+                    #[automatically_derived]
+                    impl Timescale for #name {
+                        type Timescaled = #timescale_ident;
+
+                        fn with_time(self, time: f64) -> Self::Timescaled {
+                            #timescale_ident {
+                                time,
+                                data: self
+                            }
                         }
                     }
                 };
