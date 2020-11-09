@@ -1,7 +1,6 @@
 use chrono::Local;
-use csv::Writer;
-use fields::{Fields, SerializeFlatten};
-use serde::{ser::SerializeStruct, Serialize};
+use csv::{Writer, WriterBuilder};
+use serde::Serialize;
 use std::{
     fmt::Debug,
     fs::{create_dir_all, File},
@@ -10,18 +9,18 @@ use std::{
     path::PathBuf,
 };
 
-#[derive(Debug, Fields, SerializeFlatten)]
-struct TimescaleData<Datapoint: Clone + Debug + Serialize> {
+#[derive(Debug, Serialize)]
+struct TimescaleData<Datapoint: Debug + Serialize> {
     time: f64,
     data_point: Datapoint,
 }
 
-pub struct DataLogger<Datapoint: Clone + Fields + Debug + Serialize> {
+pub struct DataLogger<Datapoint: Debug + Serialize> {
     writer: Writer<File>,
     data: PhantomData<TimescaleData<Datapoint>>,
 }
 
-impl<Datapoint: Clone + Fields + Debug + Serialize> DataLogger<Datapoint> {
+impl<Datapoint: Debug + Serialize> DataLogger<Datapoint> {
     fn find_file() -> io::Result<File> {
         // Look in current directory for existing data dir
         let mut path = PathBuf::new();
@@ -43,7 +42,7 @@ impl<Datapoint: Clone + Fields + Debug + Serialize> DataLogger<Datapoint> {
 
     pub fn from_file(file: File) -> Self {
         Self {
-            writer: Writer::from_writer(file),
+            writer: WriterBuilder::new().has_headers(false).from_writer(file),
             data: PhantomData,
         }
     }

@@ -446,21 +446,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e78d4f1cc4ae33bbfc157ed5d5a5ef3bc29227303d595861deb238fcec4e9457"
 
 [[package]]
-name = "fields"
-version = "0.1.0"
-dependencies = [
- "fields_derive",
-]
-
-[[package]]
-name = "fields_derive"
-version = "0.1.0"
-dependencies = [
- "quote 1.0.7",
- "syn",
-]
-
-[[package]]
 name = "fixedbitset"
 version = "0.1.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1537,7 +1522,6 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "csv",
- "fields",
  "kiss3d",
  "log",
  "nalgebra",
@@ -2108,3 +2092,8 @@ name = "xml-rs"
 version = "0.8.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b07db065a5cf61a7e4ba64f29e67db906fb1787316516c4e6e5ff0fea1efcd8a"
+
+[[patch.unused]]
+name = "csv"
+version = "1.1.3"
+source = "git+https://github.com/ilya-epifanov/rust-csv?branch=nested-struct-headers#a2f7a8d0ef9e2a020b781b0b0e4942f3ae7fd04a"

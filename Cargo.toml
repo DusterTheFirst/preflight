@@ -17,7 +17,6 @@ csv = "1.1.4"
 serde = { version = "1.0.117", features = ["derive"] }
 paste = "1.0.2"
 serde_json = "1.0.59"
-fields = { path = "./fields" }
 
-[workspace]
-members = ["fields", "fields/fields_derive"]
+[patch.crates-io]
+csv = { branch = "nested-struct-headers", git = "https://github.com/ilya-epifanov/rust-csv" }

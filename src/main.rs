@@ -1,5 +1,4 @@
 use data_log::DataLogger;
-use fields::Fields;
 use kiss3d::{
     camera::ArcBall,
     light::Light,
@@ -19,20 +18,27 @@ use nphysics3d::{
     },
     world::{DefaultGeometricalWorld, DefaultMechanicalWorld},
 };
-use serde::Serialize;
+use serde::{ser::SerializeStruct, Serialize, Serializer};
 
 mod data_log;
 
-#[derive(Debug, Fields, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 struct Datapoint {
+    #[serde(serialize_with = "vector_ser")]
     position: Vector3<f64>,
 }
 
-pub trait SerializeFlatten {
-    fn serialize_flatten() {
-        
-    }
+fn vector_ser<S: Serializer>(vec: &Vector3<f64>, serializer: S) -> Result<S::Ok, S::Error> {
+    let mut s = serializer.serialize_struct("Vector3", 3)?;
+    s.serialize_field("x", &vec[0])?;
+    s.serialize_field("y", &vec[1])?;
+    s.serialize_field("z", &vec[2])?;
+    s.end()
 }
+
+// idk
+struct HeaderSerializer;
+impl Serializer for HeaderSerializer {}
 
 fn main() {
     let mut logger = DataLogger::<Datapoint>::new().unwrap();
