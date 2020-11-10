@@ -1,8 +1,6 @@
 use chrono::Local;
 use csv::{Writer, WriterBuilder};
-use serde::Serialize;
 use std::{
-    fmt::Debug,
     fs::{create_dir_all, File},
     io,
     marker::PhantomData,
@@ -40,6 +38,10 @@ impl<Datapoint: Timescale> DataLogger<Datapoint> {
             writer: WriterBuilder::new().from_writer(file),
             data: PhantomData,
         }
+    }
+
+    pub fn flush(&mut self) -> io::Result<()> {
+        self.writer.flush()
     }
 
     pub fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> csv::Result<()> {

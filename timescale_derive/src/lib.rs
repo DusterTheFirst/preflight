@@ -1,6 +1,6 @@
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned, AttributeArgs, Fields, Index, ItemStruct};
+use syn::{parse_macro_input, spanned::Spanned, Fields, ItemStruct};
 
 #[proc_macro_derive(Timescale)]
 pub fn timescale_derive(input: TokenStream) -> TokenStream {
@@ -8,8 +8,7 @@ pub fn timescale_derive(input: TokenStream) -> TokenStream {
 
     TokenStream::from(match input.fields {
         Fields::Named(fields) => {
-            let (name, attrs, vis, generics) =
-                (input.ident, input.attrs, input.vis, input.generics);
+            let (name, vis, generics) = (input.ident, input.vis, input.generics);
             let fields = fields.named.into_iter();
 
             let serializers = fields.clone().map(|f| {
@@ -29,7 +28,7 @@ pub fn timescale_derive(input: TokenStream) -> TokenStream {
             quote! {
                 #[doc(hidden)]
                 #[derive(Debug)]
-                #vis struct  #timescale_ident #generics {
+                #vis struct #timescale_ident #generics {
                     /// The time since the start of the simulation that this data point was logged
                     pub time: f64,
                     /// The data for this time point
