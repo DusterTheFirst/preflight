@@ -18,13 +18,14 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use timescale::Timescale;
+use timescale::ToTimescale;
 use ui::{gui, theme, Ids};
 
 mod data_log;
 mod ui;
+mod force_generator;
 
-#[derive(Debug, Clone, Timescale)]
+#[derive(Debug, Clone, ToTimescale)]
 struct VectorDatapoints {
     position: Vector3<f64>,
 }
@@ -37,7 +38,7 @@ fn main() {
     // Setup csv logging
     let mut logger = DataLogger::<VectorDatapoints>::new().unwrap();
 
-    // Create a window for graphics
+    /* // Create a window for graphics
     let mut window = Window::new("Simulation");
     window.set_background_color(0.0, 0.5, 1.0);
     // window.set_light(Light::Absolute(Point3::new(100.0, 1000.0, 300.0)));
@@ -57,7 +58,7 @@ fn main() {
     camera.set_dist(100.0);
     // camera.rebind_drag_button(None);
     // camera.rebind_rotate_button(None);
-    // camera.rebind_reset_key(None);
+    // camera.rebind_reset_key(None); */
 
     // Setup the physics objects
     let mut mechanical_world = DefaultMechanicalWorld::<f64>::new(Vector3::y() * -9.81);
@@ -71,23 +72,22 @@ fn main() {
     let rocket_body_handle = bodies.insert(
         RigidBodyDesc::new()
             .translation(Vector3::new(0.0, 100.0, 0.0))
-            .mass(100.0)
+            .mass(0.100)
             .build(),
     );
     let rocket_shape = Cuboid::new(Vector3::new(10.0, 10.0, 10.0));
     let rocket_collider_handle = colliders.insert(
         ColliderDesc::new(ShapeHandle::new(rocket_shape))
-            .density(1.0)
             .build(BodyPartHandle(rocket_body_handle, 0)),
     );
 
-    // Create the visible rocket
+    /* // Create the visible rocket
     let mut visible_rocket = window.add_cube(
         (rocket_shape.half_extents[0] * 2.0) as f32,
         (rocket_shape.half_extents[1] * 2.0) as f32,
         (rocket_shape.half_extents[2] * 2.0) as f32,
     );
-    visible_rocket.set_color(1.0, 0.0, 0.0);
+    visible_rocket.set_color(1.0, 0.0, 0.0); */
 
     // Create the ground physics object
     let ground_handle = bodies.insert(RigidBodyDesc::new().gravity_enabled(false).build());
@@ -96,13 +96,13 @@ fn main() {
         ColliderDesc::new(ShapeHandle::new(ground_shape)).build(BodyPartHandle(ground_handle, 0)),
     );
 
-    // Create the visible ground
+    /* // Create the visible ground
     let mut ground = window.add_cube(
         (ground_shape.half_extents[0] * 2.0) as f32,
         (ground_shape.half_extents[1] * 2.0) as f32,
         (ground_shape.half_extents[2] * 2.0) as f32,
     );
-    ground.set_color(0.0, 1.0, 0.0);
+    ground.set_color(0.0, 1.0, 0.0); */
 
     // Hold the elapsed time
     let mut elapsed_time: f64 = 0.0;
@@ -127,7 +127,9 @@ fn main() {
     }
 
     // The simulation loop
-    while !stopped.load(Ordering::Relaxed) && window.render_with_camera(&mut camera) {
+    while !stopped.load(Ordering::Relaxed)
+    /* && window.render_with_camera(&mut camera) */
+    {
         // Physics
         {
             // Apply the thrust force to the rocket
@@ -168,7 +170,7 @@ fn main() {
         }
 
         // Rendering
-        {
+        /* {
             let rocket_position: Vector3<f32> =
                 nalgebra::convert(rocket_body.position().translation.vector);
             let rocket_velocity: Vector3<f32> = nalgebra::convert(rocket_body.velocity().linear);
@@ -235,7 +237,7 @@ fn main() {
                 &font_regular,
                 &Point3::new(1.0, 1.0, 1.0),
             )
-        }
+        } */
     }
 
     if let Err(e) = logger.flush() {

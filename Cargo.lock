@@ -777,6 +777,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "lerp"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7e4ed4e4fda09cc322474c658240734a1412442fa17a3abd7a8bf267df610107"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.80"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1812,6 +1821,7 @@ dependencies = [
 name = "timescale"
 version = "0.1.0"
 dependencies = [
+ "lerp",
  "serde",
  "timescale_derive",
 ]
@@ -1820,6 +1830,7 @@ dependencies = [
 name = "timescale_derive"
 version = "0.1.0"
 dependencies = [
+ "csv",
  "quote 1.0.7",
  "syn",
 ]

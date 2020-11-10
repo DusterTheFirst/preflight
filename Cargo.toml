@@ -18,8 +18,12 @@ nphysics3d = "0.18.0"
 paste = "1.0.2"
 serde = { version = "1.0.117", features = ["derive"] }
 simplelog = "0.8.0"
-timescale = { path = "./timescale" }
+timescale = { path = "./crates/timescale" }
 indoc = "1.0.3"
 
 [workspace]
-members = [".", "timescale_derive", "timescale"]
+members = [
+    ".",
+    "crates/timescale",
+    "crates/timescale/derive",
+]

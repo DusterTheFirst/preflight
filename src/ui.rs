@@ -1,13 +1,5 @@
-use conrod::widget::Canvas;
-use kiss3d::conrod::{
-    self,
-    position::Padding,
-    position::{Align, Direction, Relative},
-    widget, Colorable, Labelable, Position, Positionable, Sizeable, Theme, Widget,
-};
-use kiss3d::widget_ids;
+use kiss3d::{conrod::{self, widget::Canvas, Colorable, Labelable, Position, Positionable, Sizeable, Theme, Widget, position::Padding, position::{Align, Direction, Relative}, widget}, widget_ids};
 use log::trace;
-use widget::{Canvas, Line, RoundedRectangle, Text};
 
 pub fn theme() -> conrod::Theme {
     Theme {
@@ -59,18 +51,18 @@ pub fn gui(ui: &mut conrod::UiCell, ids: &Ids) {
         .mid_right_with_margin(10.0)
         .w(SIDEBAR_W)
         .padded_h_of(ui.window, 10.0)
-        .set(ids.canvas, &mut ui);
+        .set(ids.canvas, ui);
 
-    conrod::widget::Text::new("Vel. Iters.:")
-        .set(ids.title_vel_x_slider, &mut ui);
+    // conrod::widget::Text::new("Vel. Iters.:")
+    //     .set(ids.title_vel_x_slider, &mut ui);
 
-    for val in conrod::widget::Slider::new(curr_vel_iters as f32, 0.0, 50.0)
-        .label(&curr_vel_iters.to_string())
-        .align_middle_x_of(ids.canvas)
-        .down_from(ids.title_slider_vel_iter, TITLE_VSPACE)
-        .w_h(ELEMENT_W, ELEMENT_H)
-        .set(ids.slider_vel_iter, &mut ui)
-    {
-        world.integration_parameters.max_velocity_iterations = val as usize;
-    }
+    // for val in conrod::widget::Slider::new(curr_vel_iters as f32, 0.0, 50.0)
+    //     .label(&curr_vel_iters.to_string())
+    //     .align_middle_x_of(ids.canvas)
+    //     .down_from(ids.title_slider_vel_iter, TITLE_VSPACE)
+    //     .w_h(ELEMENT_W, ELEMENT_H)
+    //     .set(ids.slider_vel_iter, &mut ui)
+    // {
+    //     world.integration_parameters.max_velocity_iterations = val as usize;
+    // }
 }

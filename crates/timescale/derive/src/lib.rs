@@ -1,8 +1,17 @@
 use proc_macro::TokenStream;
-use quote::{format_ident, quote, quote_spanned};
-use syn::{parse_macro_input, spanned::Spanned, Fields, ItemStruct};
+use quote::quote;
+use syn::{parse_macro_input, ExprPath};
 
-#[proc_macro_derive(Timescale)]
+#[proc_macro]
+pub fn load_csv(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as ExprPath);
+
+    TokenStream::from(quote! {
+
+    })
+}
+
+#[proc_macro_derive(ToTimescale)]
 pub fn timescale_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
 
@@ -39,7 +48,9 @@ pub fn timescale_derive(input: TokenStream) -> TokenStream {
                 #[allow(non_upper_case_globals, unused_attributes, unused_qualifications)]
                 const _: () = {
                     extern crate serde as _serde;
+                    extern crate timescale as _timescale;
                     use _serde::ser::SerializeStruct;
+                    use _timescale::ToTimescale;
 
                     #[automatically_derived]
                     impl _serde::Serialize for #timescale_ident {
@@ -55,10 +66,10 @@ pub fn timescale_derive(input: TokenStream) -> TokenStream {
                     }
 
                     #[automatically_derived]
-                    impl Timescale for #name {
-                        type Timescaled = #timescale_ident;
+                    impl ToTimescale for #name {
+                        type Timescale = #timescale_ident;
 
-                        fn with_time(self, time: f64) -> Self::Timescaled {
+                        fn with_time(self, time: f64) -> Self::Timescale {
                             #timescale_ident {
                                 time,
                                 data: self

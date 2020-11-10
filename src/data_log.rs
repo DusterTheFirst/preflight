@@ -6,14 +6,14 @@ use std::{
     marker::PhantomData,
     path::PathBuf,
 };
-use timescale::Timescale;
+use timescale::ToTimescale;
 
-pub struct DataLogger<Datapoint: Timescale> {
+pub struct DataLogger<Datapoint: ToTimescale> {
     writer: Writer<File>,
     data: PhantomData<Datapoint>,
 }
 
-impl<Datapoint: Timescale> DataLogger<Datapoint> {
+impl<Datapoint: ToTimescale> DataLogger<Datapoint> {
     fn find_file() -> io::Result<File> {
         // Look in current directory for existing data dir
         let mut path = PathBuf::new();
