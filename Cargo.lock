@@ -779,10 +779,19 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 [[package]]
 name = "lerp"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7e4ed4e4fda09cc322474c658240734a1412442fa17a3abd7a8bf267df610107"
+source = "git+https://github.com/DusterTheFirst/lerp-rs/?branch=derive_macro#d3cc57f19a2e5c317b3922db023f0d6f818e9369"
 dependencies = [
+ "lerp_derive",
  "num-traits",
+]
+
+[[package]]
+name = "lerp_derive"
+version = "0.1.0"
+source = "git+https://github.com/DusterTheFirst/lerp-rs/?branch=derive_macro#d3cc57f19a2e5c317b3922db023f0d6f818e9369"
+dependencies = [
+ "quote 1.0.7",
+ "syn",
 ]
 
 [[package]]
