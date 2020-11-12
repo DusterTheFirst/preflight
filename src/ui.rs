@@ -1,4 +1,14 @@
-use kiss3d::{conrod::{self, widget::Canvas, Colorable, Labelable, Position, Positionable, Sizeable, Theme, Widget, position::Padding, position::{Align, Direction, Relative}, widget}, widget_ids};
+use kiss3d::{
+    conrod::{
+        self,
+        position::Padding,
+        position::{Align, Direction, Relative},
+        widget,
+        widget::Canvas,
+        Colorable, Labelable, Position, Positionable, Sizeable, Theme, Widget,
+    },
+    widget_ids,
+};
 use log::trace;
 
 pub fn theme() -> conrod::Theme {

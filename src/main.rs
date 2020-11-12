@@ -22,8 +22,8 @@ use timescale::ToTimescale;
 use ui::{gui, theme, Ids};
 
 mod data_log;
-mod ui;
 mod force_generator;
+mod ui;
 
 #[derive(Debug, Clone, ToTimescale)]
 struct VectorDatapoints {

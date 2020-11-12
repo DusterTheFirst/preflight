@@ -1,11 +1,12 @@
-use timescale::{Lerp, TimescaleDataTable, TimescaleData};
+use timescale::{Lerp, TimescaleData, TimescaleDataTable};
 
 #[derive(Lerp, TimescaleData)]
+#[timescale(rename = "Time (N)")]
 pub struct RocketEngine {
-    #[rename("Thrust (N)")]
+    #[timescale(rename = "Thrust (N)")]
     thrust: f64,
 }
 
 #[derive(TimescaleDataTable)]
-#[csv(file = "csv/Estes_C6.csv", st = RocketEngine)]
+#[table(file = "csv/Estes_C6.csv", st = RocketEngine)]
 pub struct EstesC6;

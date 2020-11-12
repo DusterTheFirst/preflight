@@ -21,7 +21,7 @@ pub fn derive(input: ItemStruct) -> Result<TokenStream> {
             });
 
             // Get the fields count from the length of the serializers, plus the one for time
-            let fields_count = serializers.len() *3 + 1;
+            let fields_count = serializers.len() * 3 + 1;
 
             // Create the timescale struct ident
             let timescale_ident = format_ident!("Timescale{}", name);

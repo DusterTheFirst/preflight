@@ -1,8 +1,18 @@
-use crate::parse::timescale_data::FieldArgs;
+use crate::parse::timescale_data::RenameArgs;
 use csv::WriterBuilder;
 use proc_macro2::TokenStream;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use syn::{spanned::Spanned, Error, Fields, ItemStruct, Path, Type, TypePath};
+
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "PascalCase")]
+pub struct DerivedTimescaleData {
+    pub field: String,
+    pub rename: Option<String>,
+    #[serde(rename = "type")]
+    pub ty: String,
+}
 
 pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
     match &input.fields {
@@ -25,9 +35,17 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                 .from_path(&path)
                 .map_err(map_csv_error)?;
 
-            writer
-                .write_record(&["Field", "Rename", "Type"])
-                .map_err(map_csv_error)?;
+            {
+                let args = RenameArgs::parse_attributes(input.attrs.as_slice(), &input.ident)?;
+
+                writer
+                    .serialize(DerivedTimescaleData {
+                        field: "self".to_owned(),
+                        rename: args.map(|args| args.rename.value()),
+                        ty: input.ident.to_string(),
+                    })
+                    .map_err(map_csv_error)?;
+            }
 
             for field in &fields.named {
                 if let Type::Path(TypePath {
@@ -38,7 +56,7 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                     let ident = field.ident.as_ref().unwrap();
                     let ty = segments.last().unwrap();
 
-                    let args = FieldArgs::parse_field_attributes(
+                    let args = RenameArgs::parse_attributes(
                         field.attrs.as_slice(),
                         field
                             .ident
@@ -47,12 +65,11 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                     )?;
 
                     writer
-                        .write_record(&[
-                            ident.to_string(),
-                            args.map(|args| args.rename.value())
-                                .unwrap_or_else(String::new),
-                            ty.ident.to_string(),
-                        ])
+                        .serialize(DerivedTimescaleData {
+                            field: ident.to_string(),
+                            rename: args.map(|args| args.rename.value()),
+                            ty: ty.ident.to_string(),
+                        })
                         .map_err(map_csv_error)?;
                 }
             }

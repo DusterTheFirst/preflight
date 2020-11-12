@@ -113,8 +113,7 @@ mod test {
 
     struct DataTable2;
 
-    #[derive(Lerp)]
-    #[derive(PartialEq, Debug)]
+    #[derive(Lerp, PartialEq, Debug)]
     struct Data2(f64, f64);
 
     // impl Lerp<f64> for Data2 {

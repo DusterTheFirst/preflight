@@ -97,7 +97,7 @@ impl StructArgs {
                     // attribute and also has the name csv
                     attr.style == AttrStyle::Outer
                         && segment.arguments == PathArguments::None
-                        && segment.ident.to_string() == "csv"
+                        && segment.ident.to_string() == "table"
                 } else {
                     false
                 }
