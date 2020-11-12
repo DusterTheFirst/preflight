@@ -1,170 +1,133 @@
-use std::path::PathBuf;
-
+use csv::StringRecord;
+use parse::timescale_data_table;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, quote_spanned};
+use std::{
+    collections::hash_map::RandomState, collections::HashSet, fs, iter::FromIterator, path::PathBuf,
+};
 use syn::{
     parse::{Parse, ParseStream},
     parse_macro_input,
     punctuated::Punctuated,
     spanned::Spanned,
     AttrStyle, Expr, ExprAssign, ExprLit, ExprPath, Fields, ItemStruct, Lit, LitStr, Path,
-    PathArguments, Token,
+    PathArguments, Token, Type, TypePath,
 };
 
-#[derive(Default, Debug)]
-struct LoadCsvArguments {
-    st: Option<Path>,
-    file: Option<LitStr>,
-}
-
-impl Parse for LoadCsvArguments {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
-        let arguments: Punctuated<ExprAssign, Token![,]> =
-            input.parse_terminated(ExprAssign::parse)?;
-
-        Ok(arguments
-            .into_iter()
-            .try_fold(LoadCsvArguments::default(), |pre, expr| {
-                if let Expr::Path(ExprPath { path, .. } ) = *expr.left {
-                    let name = path.segments.iter().map(|seg| {
-                        seg.ident.to_string()
-                    }).collect::<Vec<_>>().join("::");
-
-                    match (name.as_str(), *expr.right) {
-                        ("st", Expr::Path(ExprPath { path , .. })) => {
-                            if pre.st.is_some() {
-                                Err(syn::Error::new(
-                                    path.span(),
-                                    "duplicate definition of field `st`",
-                                ))
-                            } else {
-                                Ok(LoadCsvArguments {
-                                    st: Some(path),
-                                    ..pre
-                                })
-                            }
-                        },
-                        ("file", Expr::Lit(ExprLit { lit: Lit::Str(str_lit), .. })) => {
-                            if pre.file.is_some() {
-                                Err(syn::Error::new(
-                                    str_lit.span(),
-                                    "duplicate definition of field `file`",
-                                ))
-                            } else {
-                                Ok(LoadCsvArguments {
-                                    file: Some(str_lit),
-                                    ..pre
-                                })
-                            }
-                        }
-                        (name, _) => Err(syn::Error::new(
-                            path.segments.span(),
-                            format!("unknown argument `{}`.\navailable arguments are `file` and `st`", name),
-                        ))
-                    }
-                } else {
-                    Err(syn::Error::new(
-                        expr.span(),
-                        "invalid argument syntax.\nexpected syntax `argument_name = \"argument_value\"`",
-                    ))
-                }
-            })?)
-    }
-}
+mod derive;
+mod parse;
 
 #[proc_macro_derive(TimescaleDataTable, attributes(csv))]
-pub fn load_csv(input: TokenStream) -> TokenStream {
+pub fn derive_timescale_data_table(input: TokenStream) -> TokenStream {
+    // Parse the underlying struct
+    let input: ItemStruct = parse_macro_input!(input as ItemStruct);
+
+    derive::timescale_data_table::derive(input)
+        .unwrap_or_else(|err| err.to_compile_error())
+        .into()
+}
+
+#[proc_macro_derive(TimescaleData, attributes(rename))]
+pub fn timescale_data_loader(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as ItemStruct);
 
-    if Fields::Unit != input.fields {
-        return TokenStream::from(quote_spanned! {input.span()=>
-            compile_error!("The struct must be a unit struct");
-        });
-    }
+    TokenStream::from(match &input.fields {
+        Fields::Named(fields) => {
+            let path = PathBuf::from(format!(
+                "{}/{}.rs.fields",
+                env!("PROC_ARTIFACT_DIR"),
+                input.ident.to_string()
+            ));
 
-    let attributes = input
-        .attrs
-        .iter()
-        .filter(|attr| {
-            if let [segment] = attr.path.segments.iter().collect::<Vec<_>>().as_slice() {
-                attr.style == AttrStyle::Outer
-                    && segment.arguments == PathArguments::None
-                    && segment.ident.to_string() == "csv"
-            } else {
-                false
-            }
-        })
-        .try_fold::<_, _, syn::Result<_>>(LoadCsvArguments::default(), |pre, a| {
-            let input = a.parse_args::<LoadCsvArguments>()?;
+            // FIXME: clean up, and better messages
 
-            if let Some(st) = pre.st {
-                Err(syn::Error::new(
-                    st.span(),
-                    "duplicate definition of field `st`",
-                ))
-            } else if let Some(lit) = pre.file {
-                Err(syn::Error::new(
-                    lit.span(),
-                    "duplicate definition of field `file`",
-                ))
-            } else {
-                Ok(LoadCsvArguments {
-                    file: input.file.or(pre.file),
-                    st: input.st.or(pre.st),
-                })
-            }
-        });
+            if let Err(e) = fs::write(
+                &path,
+                match fields
+                    .named
+                    .iter()
+                    .map(|f| match &f.ty {
+                        Type::Path(TypePath {
+                            path: Path { segments, .. },
+                            ..
+                        }) => {
+                            let ident = f.ident.as_ref().unwrap();
+                            let ty = segments.last().unwrap();
 
-    TokenStream::from(match attributes {
-        Err(e) => e.to_compile_error(),
-        Ok(attributes) => match attributes {
-            LoadCsvArguments { file: None, .. } => {
-                quote_spanned! {input.ident.span()=>
-                    compile_error!("a path to load csv from using the attribute `#[csv(path = ...)]` must be provided");
-                }
-            }
-            LoadCsvArguments { st: None, .. } => {
-                quote_spanned! {input.ident.span()=>
-                    compile_error!("struct to deserialize the csv as using the attribute `#[csv(struct = ...)] must be provided`");
-                }
-            }
-            LoadCsvArguments {
-                file: Some(file),
-                st: Some(st),
-            } => {
-                let path = PathBuf::from(format!(
-                    "{}/{}",
-                    std::env::var("CARGO_MANIFEST_DIR")
-                        .expect("env var CARGO_MANIFEST_DIR missing"),
-                    file.value()
-                ));
+                            let rename = f
+                                .attrs
+                                .iter()
+                                .filter(|attr| {
+                                    if let [segment] =
+                                        attr.path.segments.iter().collect::<Vec<_>>().as_slice()
+                                    {
+                                        attr.style == AttrStyle::Outer
+                                            && segment.arguments == PathArguments::None
+                                            && segment.ident.to_string() == "rename"
+                                    } else {
+                                        false
+                                    }
+                                })
+                                .try_fold(None::<LitStr>, |pre, a| {
+                                    let input: LitStr = a.parse_args()?;
 
-                if !path.exists() {
-                    let path = path.to_string_lossy();
-                    return TokenStream::from(quote_spanned! {file.span()=>
-                        compile_error!(concat!("File ", #path, " does not exist"));
-                    });
-                }
+                                    if let Some(pre) = pre {
+                                        Err(syn::Error::new(
+                                            pre.span(),
+                                            format!(
+                                                "duplicate rename of field `{}`",
+                                                ident.to_string()
+                                            ),
+                                        ))
+                                    } else {
+                                        Ok(Some(input))
+                                    }
 
-                let data_table_struct = input.ident;
+                                    // if let Some(st) = pre.st {
+                                    //     Err(syn::Error::new(
+                                    //         st.span(),
+                                    //         "duplicate definition of field `st`",
+                                    //     ))
+                                    // } else if let Some(lit) = pre.file {
+                                    //     Err(syn::Error::new(
+                                    //         lit.span(),
+                                    //         "duplicate definition of field `file`",
+                                    //     ))
+                                    // } else {
+                                    //     Ok(LoadCsvArguments {
+                                    //         file: input.file.or(pre.file),
+                                    //         st: input.st.or(pre.st),
+                                    //     })
+                                    // }
+                                })?;
 
-                quote! {
-                    const _: () = {
-                        use timescale::TimescaleData;
+                            let name = if let Some(rename) = rename {
+                                rename.value()
+                            } else {
+                                ident.to_string()
+                            };
 
-                        #[automatically_derived]
-                        impl TimescaleDataTable for #data_table_struct {
-                            type Datapoint = #st;
-
-                            fn get(time: f64) -> TimescaleData<Self::Datapoint> {
-                                match time {
-                                   
-                                }
-                            }
+                            Ok(format!("{},{},{}", ident, name, ty.ident.to_string()))
                         }
-                    };
+                        _ => unreachable!(),
+                    })
+                    .collect::<Result<Vec<_>, syn::Error>>()
+                {
+                    Ok(l) => l.join("\n"),
+                    Err(e) => return TokenStream::from(e.to_compile_error()),
+                },
+            ) {
+                let path = path.to_string_lossy();
+                let e = e.to_string();
+                quote_spanned! {input.span()=>
+                    compile_error!(concat!("Failed to write to the file `", #path, "`: ", #e));
                 }
+            } else {
+                quote! {}
             }
+        }
+        _ => quote_spanned! {input.span()=>
+            compile_error!("struct must have named fields");
         },
     })
 }
@@ -238,7 +201,7 @@ pub fn timescale_derive(input: TokenStream) -> TokenStream {
             }
         }
         _ => quote_spanned! {input.span()=>
-            compile_error!("Structs must have named fields");
+            compile_error!("struct must have named fields");
         },
     })
 }

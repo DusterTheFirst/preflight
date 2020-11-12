@@ -1,0 +1,122 @@
+use std::{path::PathBuf, fs};
+
+use proc_macro2::TokenStream;
+use quote::{quote, quote_spanned};
+use syn::{spanned::Spanned, Error, Fields, ItemStruct, LitStr, Path};
+
+use crate::parse::timescale_data_table::StructArgs;
+
+pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
+    // Ensure the struct has no fields
+    if Fields::Unit != input.fields {
+        return Err(Error::new(input.span(), "The struct must be a unit struct"));
+    }
+
+    // Parse the attributes
+    let args = StructArgs::parse_attributes(input.attrs.as_slice())?;
+
+    // Ensure that both args have values
+    match args {
+        StructArgs { file: None, .. } => Err(Error::new(
+            input.ident.span(), 
+            "a path to load csv from using the attribute `#[csv(path = ...)]` must be provided"
+        )),
+        StructArgs { st: None, .. } => Err(Error::new(
+            input.ident.span(),
+            "struct to deserialize the csv as using the attribute `#[csv(struct = ...)] must be provided`"
+        )),
+        StructArgs {
+            file: Some(file),
+            st: Some(st),
+        } => Ok(load_csv(file, st)?),
+    }
+}
+
+fn load_csv(file: LitStr, st: Path) -> syn::Result<TokenStream> {
+    let csv_path = PathBuf::from(format!(
+        "{}/{}",
+        std::env::var("CARGO_MANIFEST_DIR").unwrap(),
+        file.value()
+    ));
+
+    if !csv_path.exists() {
+        let csv_path = csv_path.to_string_lossy();
+        return Err(Error::new(
+            file.span(),
+            format!("File `{}` does not exist", csv_path),
+        ));
+    }
+
+    let struct_name = st.segments.last().map(|s| s.ident.to_string()).unwrap();
+    let struct_fields_path = PathBuf::from(format!(
+        "{}/{}.rs.fields",
+        env!("PROC_ARTIFACT_DIR"),
+        struct_name
+    ));
+
+    if !struct_fields_path.exists() {
+        return Err(Error::new(
+            st.span(),
+            format!("struct `{}` does not derive TimescaleData", struct_name),
+        ));
+    }
+
+    let struct_fields = fs::read_to_string(struct_fields_path).unwrap();
+    let (struct_fields, struct_fields_headers, field_type): (Vec<_>, Vec<_>, Vec<_>) =
+        struct_fields
+            .split("\n")
+            .map(|r| match r.split(",").collect::<Vec<_>>()[..] {
+                [first, second, third, ..] => (first, second, third),
+                _ => unreachable!(),
+            })
+            .unzip();
+    let field_type = field_type.first().unwrap();
+
+    // FIXME: extract into other, remove unwraps
+    let mut csv_reader = csv::Reader::from_path(csv_path).unwrap();
+    let mut headers = csv_reader.headers().unwrap().into_iter();
+
+    if let Some("Time (s)") = headers.next() {
+    } else {
+        return TokenStream::from(quote_spanned! {file.span()=>
+            compile_error!("csv file's first column must be exactly `Time (s)`");
+        });
+    }
+
+    let headers = HashSet::<&str, RandomState>::from_iter(headers.collect::<Vec<_>>());
+    let struct_fields = HashSet::<&str, RandomState>::from_iter(struct_fields.into_iter());
+
+    let diff = struct_fields.difference(&headers).collect::<Vec<_>>();
+
+    if !diff.is_empty() {
+        return TokenStream::from(quote_spanned! {file.span()=>
+            compile_error!(concat!("csv columns ", #(stringify!(#diff)),*, " are missing"));
+        });
+    }
+
+    let mut record = StringRecord::new();
+    while csv_reader.read_record(&mut record).unwrap() {
+        dbg!(&record);
+    }
+
+    dbg!(struct_fields);
+
+    let data_table_struct = input.ident;
+
+    quote! {
+        const _: () = {
+            use timescale::TimescaleData;
+
+            #[automatically_derived]
+            impl TimescaleDataTable for #data_table_struct {
+                type Datapoint = #st;
+
+                fn get(time: f64) -> TimescaleData<Self::Datapoint> {
+                    match time {
+
+                    }
+                }
+            }
+        };
+    }
+}
