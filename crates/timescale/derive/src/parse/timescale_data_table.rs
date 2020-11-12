@@ -1,3 +1,4 @@
+use crate::util::reconstruct;
 use syn::{
     parse::Parse, parse::ParseStream, punctuated::Punctuated, spanned::Spanned, AttrStyle,
     Attribute, Expr, ExprAssign, ExprLit, ExprPath, Lit, LitStr, Path, PathArguments, Token,
@@ -22,9 +23,7 @@ impl Parse for StructArgs {
                 // Make sure the left side of the expression is a path
                 if let Expr::Path(ExprPath { path, .. } ) = *expr.left {
                     // Join the path together
-                    let name = path.segments.iter().map(|seg| {
-                        seg.ident.to_string()
-                    }).collect::<Vec<_>>().join("::");
+                    let name = reconstruct(&path.segments);
 
                     // Match the argument by name
                     match name.as_str() {
