@@ -1,9 +1,19 @@
 use crate::parse::timescale_data::RenameArgs;
 use csv::WriterBuilder;
+use lazy_static::lazy_static;
 use proc_macro2::TokenStream;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    sync::{Arc, Mutex, RwLock},
+};
 use syn::{spanned::Spanned, Error, Fields, ItemStruct, Path, Type, TypePath};
+
+lazy_static! {
+    static ref TIMESCALE_DATA: Arc<RwLock<HashMap<String, Vec<DerivedTimescaleData>>>> =
+        Arc::new(RwLock::new(HashMap::new()));
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "PascalCase")]
@@ -30,6 +40,11 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                     format!("failed to write file `{}`: {}", path.to_string_lossy(), e),
                 )
             };
+
+            // let timescale_data = (*TIMESCALE_DATA)
+            //     .write()
+            //     .unwrap()
+            //     .entry(input.ident.to_string());
 
             let mut writer = WriterBuilder::new()
                 .from_path(&path)

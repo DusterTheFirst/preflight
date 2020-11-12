@@ -109,9 +109,11 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         )
     };
 
+    // Create reader for the csv file
     let mut csv_reader = Reader::from_path(&csv_path).map_err(map_csv_error)?;
     let mut headers = csv_reader.headers().map_err(map_csv_error)?.into_iter(); // TODO: NO UNWRAPS
 
+    // Ensure the time header/column is present
     if let Some(time_header) = self_rename {
         if let Some(true) = headers.next().map(|h| h == time_header) {
         } else {
@@ -136,7 +138,18 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         }
     }
 
-    for header in headers {}
+    let headers = headers.collect::<Vec<_>>();
+
+    // Ensure all other fields/columns are present in the csv file
+    for (i, field) in fields.iter().enumerate() {
+        let field_name = field.rename.as_ref().unwrap_or(&field.field);
+        if field_name != headers[i] {
+            return Err(Error::new(
+                file.span(),
+                format!("header `{}` is missing from the csv file", field_name),
+            ));
+        }
+    }
 
     // let headers = HashSet::<&str, RandomState>::from_iter(headers.collect::<Vec<_>>());
     // let struct_fields = HashSet::<&str, RandomState>::from_iter(struct_fields.into_iter());

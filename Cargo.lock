@@ -1840,6 +1840,7 @@ name = "timescale_derive"
 version = "0.1.0"
 dependencies = [
  "csv",
+ "lazy_static",
  "proc-macro2 1.0.24",
  "quote 1.0.7",
  "serde",
