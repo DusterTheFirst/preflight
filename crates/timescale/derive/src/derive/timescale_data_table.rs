@@ -37,7 +37,7 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
     // Get the full path to the csv file
     let csv_path = PathBuf::from(format!(
         "{}/{}",
-        std::env::var("CARGO_MANIFEST_DIR").unwrap(),
+        std::env::var("CARGO_MANIFEST_DIR").expect("environment variable `CARGO_MANIFEST_DIR` must be set"),
         file.value()
     ));
 
@@ -94,7 +94,7 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
 
     // Create reader for the csv file
     let mut csv_reader = Reader::from_path(&csv_path).map_err(map_csv_error)?;
-    let mut csv_headers = csv_reader.headers().map_err(map_csv_error)?.into_iter(); // TODO: NO UNWRAPS
+    let mut csv_headers = csv_reader.headers().map_err(map_csv_error)?.into_iter();
 
     // Ensure the time header/column is present
     if let Some(time_header) = time_column_name.as_ref() {
@@ -184,12 +184,15 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         .collect::<Result<Vec<_>, _>>()
         .map_err(map_csv_error)?;
 
+    /// Map a value and field into a token stream were the field is a field of a struct
+    /// and the value is its value
     fn map_fields_to_assignment((value, field): &(LitFloat, &Ident)) -> TokenStream {
         quote! {
             #field: #value
         }
     }
 
+    // Generate the low saturation from the first datapoint
     let low_saturation = records.first().map(|(time, fields)| {
         let struct_fields = fields.iter().map(map_fields_to_assignment);
 
@@ -199,6 +202,8 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
             }),
         }
     });
+
+    // Generate the high saturation from the last datapoint
     let high_saturation = records.last().map(|(time, fields)| {
         let struct_fields = fields.iter().map(map_fields_to_assignment);
 
@@ -208,6 +213,42 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
             }),
         }
     });
+
+    // Only generate the linear interpolations if there are more than one record to interpolate between
+    let lerps = if records.len() == 1 {
+        Vec::new()
+    } else {
+        let mut lerps = Vec::new();
+
+        // Iterate over each of the records in the csv file
+        for (i, (low_time, low_fields)) in records.iter().enumerate() {
+            // Get the next record to lerp to, breaking the loop if we have run out of records to lerp to
+            if let Some((high_time, high_fields)) = records.get(i + 1) {
+                // Map the fields to a token stream
+                let low_fields = low_fields.iter().map(map_fields_to_assignment);
+                let high_fields = high_fields.iter().map(map_fields_to_assignment);
+
+                // Add the lerp case to the match statement
+                lerps.push(quote! {
+                    _ if time >= #low_time && time < #high_time => {
+                        TimescaleData::Interpolation {
+                            next: #struct_name {
+                                #(#high_fields),*
+                            },
+                            prev: #struct_name {
+                                #(#low_fields),*
+                            },
+                            percent: (time - #low_time) / (#high_time - #low_time),
+                        }
+                    }
+                });
+            } else {
+                break;
+            }
+        }
+
+        lerps
+    };
 
     let data_table_struct = input.ident;
 
@@ -223,8 +264,9 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
                 fn get(time: Self::Time) -> TimescaleData<Self> {
                     match time {
                         #low_saturation
-                        // #lerps
+                        #(#lerps),*
                         #high_saturation
+                        _ => unreachable!(),
                     }
                 }
             }

@@ -49,8 +49,8 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                 }) = &field.ty
                 {
                     // Get the information about the field
-                    let ident = field.ident.as_ref().unwrap();
-                    let input_ty = segments.last().unwrap();
+                    let ident = field.ident.as_ref().unwrap(); // The field is in a named struct, it must have a name
+                    let input_ty = segments.last().unwrap(); // There must be at least one segment in the path for it to be a valid struct
 
                     // Parse the optional rename attribute
                     let args = RenameArgs::parse_attributes(
