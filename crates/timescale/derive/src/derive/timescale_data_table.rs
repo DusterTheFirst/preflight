@@ -1,11 +1,11 @@
 use crate::parse::timescale_data_table::StructArgs;
-use csv::{Reader, ReaderBuilder};
+use csv::Reader;
 use proc_macro2::TokenStream;
 use quote::quote;
 use std::path::PathBuf;
 use syn::{spanned::Spanned, Error, Fields, ItemStruct, LitStr, Path};
 
-use super::timescale_data::DerivedTimescaleData;
+use super::timescale_data::{DerivedTimescaleData, TIMESCALE_DATA};
 
 pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
     // Ensure the struct has no fields
@@ -43,10 +43,9 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
 
     // Enforce the existence of the file
     if !csv_path.exists() {
-        let csv_path = csv_path.to_string_lossy();
         return Err(Error::new(
             file.span(),
-            format!("File `{}` does not exist", csv_path),
+            format!("File `{}` does not exist", csv_path.to_string_lossy()),
         ));
     }
 
@@ -60,45 +59,27 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         ))?
         .ident;
 
-    // Get the file with the fields generated from the `#[derive(TimescaleData)]` macro
-    let struct_fields_path =
-        PathBuf::from(format!("{}/{}.csv", env!("PROC_ARTIFACT_DIR"), struct_name));
-
-    // Ensure the file exists
-    if !struct_fields_path.exists() {
-        return Err(Error::new(
-            st.span(),
-            format!("struct `{}` does not derive TimescaleData", struct_name),
-        ));
-    }
-
     // Load in the metadata from the struct's csv file
-    let (self_rename, fields, headers) = {
-        let map_csv_error = |e: csv::Error| -> Error {
-            Error::new(
+    let (self_rename, fields, wanted_headers) = {
+        // Read in the fields from the shared data
+        let timescale_data = (*TIMESCALE_DATA).read().unwrap();
+        let fields = timescale_data
+            .get(&struct_name.to_string())
+            .ok_or(Error::new(
                 st.span(),
-                format!("failed to read file `{}` produced by `#[derive(DerivedTimescaleData)]` on struct {}: {}", struct_fields_path.to_string_lossy(), struct_name,  e),
-            )
-        };
-
-        // Read in all the fields from the file
-        let fields = ReaderBuilder::new()
-            .from_path(&struct_fields_path)
-            .map_err(map_csv_error)?
-            .deserialize::<DerivedTimescaleData>()
-            .collect::<csv::Result<Vec<_>>>()
-            .map_err(map_csv_error)?;
+                format!("struct `{}` does not derive TimescaleData", struct_name),
+            ))?;
 
         // Get the first element and take it to be the rename of the time column
         if let [first, rest @ ..] = &fields[..] {
             let (fields, headers): (Vec<DerivedTimescaleData>, Vec<_>) = rest
                 .iter()
-                .map(|x| (x.clone(), x.rename.as_ref().cloned()))
+                .map(|x| (x.clone(), x.rename.as_ref().unwrap_or(&x.field).clone()))
                 .unzip();
 
             (first.rename.as_ref().cloned(), fields, headers)
         } else {
-            return Err(Error::new(file.span(), format!("failed to read file `{}` produced by `#[derive(DerivedTimescaleData)]` on struct {}", struct_fields_path.to_string_lossy(), struct_name)));
+            return Err(Error::new(file.span(), format!("failed to load data produced by `#[derive(DerivedTimescaleData)]` on struct {}", struct_name)));
         }
     };
 
@@ -111,11 +92,11 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
 
     // Create reader for the csv file
     let mut csv_reader = Reader::from_path(&csv_path).map_err(map_csv_error)?;
-    let mut headers = csv_reader.headers().map_err(map_csv_error)?.into_iter(); // TODO: NO UNWRAPS
+    let mut csv_headers = csv_reader.headers().map_err(map_csv_error)?.into_iter(); // TODO: NO UNWRAPS
 
     // Ensure the time header/column is present
     if let Some(time_header) = self_rename {
-        if let Some(true) = headers.next().map(|h| h == time_header) {
+        if let Some(true) = csv_headers.next().map(|h| h == time_header) {
         } else {
             return Err(Error::new(
                 file.span(),
@@ -126,7 +107,7 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
             ));
         }
     } else {
-        if let Some("Time (s)") = headers.next() {
+        if let Some("Time (s)") = csv_headers.next() {
         } else {
             return Err(Error::new(
                 file.span(),
@@ -138,17 +119,46 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         }
     }
 
-    let headers = headers.collect::<Vec<_>>();
+    // Collect the rest of the headers
+    let csv_headers = csv_headers.collect::<Vec<_>>();
 
-    // Ensure all other fields/columns are present in the csv file
-    for (i, field) in fields.iter().enumerate() {
-        let field_name = field.rename.as_ref().unwrap_or(&field.field);
-        if field_name != headers[i] {
+    // Ensure all wanted fields/columns are present in the csv file
+    for (i, wanted_header) in wanted_headers.iter().enumerate() {
+        if let Some(csv_header) = csv_headers.get(i) {
+            if csv_header != wanted_header {
+                return Err(Error::new(
+                    file.span(),
+                    format!(
+                        "header `{}` at position {} does not match expected `{}`",
+                        csv_header,
+                        i + 1,
+                        wanted_header
+                    ),
+                ));
+            }
+        } else {
             return Err(Error::new(
                 file.span(),
-                format!("header `{}` is missing from the csv file", field_name),
+                format!(
+                    "header `{}` (#{}) is missing from the csv file",
+                    wanted_header,
+                    i + 1
+                ),
             ));
         }
+    }
+
+    // Error out about excess headers
+    let excess_headers = &csv_headers[wanted_headers.len()..];
+    if !excess_headers.is_empty() {
+        return Err(Error::new(
+            file.span(),
+            format!(
+                "csv file contained headers not defined in struct `{}`: {}",
+                struct_name,
+                excess_headers.join(", ")
+            ),
+        ));
     }
 
     // let headers = HashSet::<&str, RandomState>::from_iter(headers.collect::<Vec<_>>());

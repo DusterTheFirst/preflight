@@ -1,76 +1,54 @@
 use crate::parse::timescale_data::RenameArgs;
-use csv::WriterBuilder;
 use lazy_static::lazy_static;
 use proc_macro2::TokenStream;
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    path::PathBuf,
-    sync::{Arc, Mutex, RwLock},
+    sync::{Arc, RwLock},
 };
-use syn::{spanned::Spanned, Error, Fields, ItemStruct, Path, Type, TypePath};
+use syn::{Error, Fields, ItemStruct, Path, Type, TypePath, spanned::Spanned};
 
 lazy_static! {
-    static ref TIMESCALE_DATA: Arc<RwLock<HashMap<String, Vec<DerivedTimescaleData>>>> =
+    pub static ref TIMESCALE_DATA: Arc<RwLock<HashMap<String, Vec<DerivedTimescaleData>>>> =
         Arc::new(RwLock::new(HashMap::new()));
 }
 
-#[derive(Serialize, Deserialize, Clone)]
-#[serde(rename_all = "PascalCase")]
+#[derive(Debug, Clone)]
 pub struct DerivedTimescaleData {
     pub field: String,
     pub rename: Option<String>,
-    #[serde(rename = "type")]
     pub ty: String,
 }
 
 pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
     match &input.fields {
         Fields::Named(fields) => {
-            // Create the path to the descriptor for this struct
-            let path = PathBuf::from(format!(
-                "{}/{}.csv",
-                env!("PROC_ARTIFACT_DIR"),
-                input.ident.to_string()
-            ));
+            // Get access to the shared struct descriptor table
+            let mut timescale_data = (*TIMESCALE_DATA).write().unwrap();
+            let timescale_data = timescale_data.entry(input.ident.to_string()).or_default();
 
-            let map_csv_error = |e: csv::Error| -> Error {
-                Error::new(
-                    input.ident.span(),
-                    format!("failed to write file `{}`: {}", path.to_string_lossy(), e),
-                )
-            };
-
-            // let timescale_data = (*TIMESCALE_DATA)
-            //     .write()
-            //     .unwrap()
-            //     .entry(input.ident.to_string());
-
-            let mut writer = WriterBuilder::new()
-                .from_path(&path)
-                .map_err(map_csv_error)?;
-
+            // Fill in the self field
             {
                 let args = RenameArgs::parse_attributes(input.attrs.as_slice(), &input.ident)?;
 
-                writer
-                    .serialize(DerivedTimescaleData {
-                        field: "self".to_owned(),
-                        rename: args.map(|args| args.rename.value()),
-                        ty: input.ident.to_string(),
-                    })
-                    .map_err(map_csv_error)?;
+                timescale_data.push(DerivedTimescaleData {
+                    field: "self".to_owned(),
+                    rename: args.map(|args| args.rename.value()),
+                    ty: input.ident.to_string(),
+                });
             }
 
+            // Fill in all other fields
             for field in &fields.named {
                 if let Type::Path(TypePath {
                     path: Path { segments, .. },
                     ..
                 }) = &field.ty
                 {
+                    // Get the information about the field
                     let ident = field.ident.as_ref().unwrap();
                     let ty = segments.last().unwrap();
 
+                    // Parse the optional rename attribute
                     let args = RenameArgs::parse_attributes(
                         field.attrs.as_slice(),
                         field
@@ -79,13 +57,12 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                             .ok_or(Error::new(field.span(), "field has no identifier"))?,
                     )?;
 
-                    writer
-                        .serialize(DerivedTimescaleData {
-                            field: ident.to_string(),
-                            rename: args.map(|args| args.rename.value()),
-                            ty: ty.ident.to_string(),
-                        })
-                        .map_err(map_csv_error)?;
+                    // Add it to the list
+                    timescale_data.push(DerivedTimescaleData {
+                        field: ident.to_string(),
+                        rename: args.map(|args| args.rename.value()),
+                        ty: ty.ident.to_string(),
+                    });
                 }
             }
 

@@ -1843,7 +1843,6 @@ dependencies = [
  "lazy_static",
  "proc-macro2 1.0.24",
  "quote 1.0.7",
- "serde",
  "syn",
 ]
 
