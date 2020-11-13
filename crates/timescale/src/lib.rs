@@ -11,22 +11,27 @@ pub trait ToTimescale {
     fn with_time(self, time: f64) -> Self::Timescale;
 }
 
-pub enum TimescaleData<D> {
-    Interpolation { prev: D, next: D, percent: f64 },
-    Saturation(D),
+pub enum TimescaleData<Table: TimescaleDataTable> {
+    Interpolation {
+        prev: Table::Datapoint,
+        next: Table::Datapoint,
+        percent: Table::Time,
+    },
+    Saturation(Table::Datapoint),
 }
 
 /// Trait to allow for linear interpolation through a static timescale lookup table for smoother lookups
-pub trait TimescaleDataTable {
-    type Datapoint: Lerp<f64>;
+pub trait TimescaleDataTable: Sized {
+    type Datapoint: Lerp<Self::Time>;
+    type Time;
 
     /// Get a data from the lookup table with all metadata attached. Prefer to use the `get_lerp` methods.
-    fn get(time: f64) -> TimescaleData<Self::Datapoint>;
+    fn get(time: Self::Time) -> TimescaleData<Self>;
 
     /// Get data from the lookup table, linear interpolating between points
     /// if the time given is between 2 points on the table, fully saturating
     /// if the time is outside of the table's range
-    fn get_lerp(time: f64) -> Self::Datapoint {
+    fn get_lerp(time: Self::Time) -> Self::Datapoint {
         match Self::get(time) {
             TimescaleData::Saturation(d) => d,
             TimescaleData::Interpolation {
@@ -53,9 +58,10 @@ mod test {
 
     struct DataTable;
     impl TimescaleDataTable for DataTable {
-        type Datapoint = f64;
+        type Datapoint = f32;
+        type Time = f32;
 
-        fn get(time: f64) -> TimescaleData<Self::Datapoint> {
+        fn get(time: Self::Time) -> TimescaleData<Self> {
             match time {
                 _ if time <= 0.0 => TimescaleData::Saturation(0.0),
                 // 0.0 => TimescaleData::Literal(0.0),
@@ -124,8 +130,9 @@ mod test {
 
     impl TimescaleDataTable for DataTable2 {
         type Datapoint = Data2;
+        type Time = f64;
 
-        fn get(time: f64) -> TimescaleData<Self::Datapoint> {
+        fn get(time: f64) -> TimescaleData<Self> {
             match time {
                 _ if time <= 0.0 => TimescaleData::Saturation(Data2(0.0, 0.0)),
                 // 0.0 => TimescaleData::Literal(0.0),

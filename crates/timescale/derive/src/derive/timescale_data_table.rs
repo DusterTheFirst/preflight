@@ -1,9 +1,9 @@
 use crate::parse::timescale_data_table::StructArgs;
 use csv::Reader;
-use proc_macro2::TokenStream;
+use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::path::PathBuf;
-use syn::{spanned::Spanned, Error, Fields, ItemStruct, LitStr, Path};
+use syn::{spanned::Spanned, Error, Fields, Ident, ItemStruct, LitFloat, LitStr, Path};
 
 use super::timescale_data::{DerivedTimescaleData, TIMESCALE_DATA};
 
@@ -60,27 +60,29 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         .ident;
 
     // Load in the metadata from the struct's csv file
-    let (self_rename, fields, wanted_headers) = {
+    let (time_column_name, fields_type, fields, wanted_headers) = {
         // Read in the fields from the shared data
         let timescale_data = (*TIMESCALE_DATA).read().unwrap();
-        let fields = timescale_data
+        let DerivedTimescaleData { fields, rename, ty } = timescale_data
             .get(&struct_name.to_string())
             .ok_or(Error::new(
                 st.span(),
                 format!("struct `{}` does not derive TimescaleData", struct_name),
-            ))?;
+            ))?
+            .clone();
 
-        // Get the first element and take it to be the rename of the time column
-        if let [first, rest @ ..] = &fields[..] {
-            let (fields, headers): (Vec<DerivedTimescaleData>, Vec<_>) = rest
+        (
+            rename,
+            Ident::new(&ty, Span::call_site()),
+            fields
                 .iter()
-                .map(|x| (x.clone(), x.rename.as_ref().unwrap_or(&x.field).clone()))
-                .unzip();
-
-            (first.rename.as_ref().cloned(), fields, headers)
-        } else {
-            return Err(Error::new(file.span(), format!("failed to load data produced by `#[derive(DerivedTimescaleData)]` on struct {}", struct_name)));
-        }
+                .map(|x| Ident::new(&x.name, Span::call_site()))
+                .collect::<Vec<_>>(),
+            fields
+                .iter()
+                .map(|x| x.rename.as_ref().unwrap_or(&x.name).clone())
+                .collect::<Vec<_>>(),
+        )
     };
 
     let map_csv_error = |e: csv::Error| -> Error {
@@ -95,7 +97,7 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
     let mut csv_headers = csv_reader.headers().map_err(map_csv_error)?.into_iter(); // TODO: NO UNWRAPS
 
     // Ensure the time header/column is present
-    if let Some(time_header) = self_rename {
+    if let Some(time_header) = time_column_name.as_ref() {
         if let Some(true) = csv_headers.next().map(|h| h == time_header) {
         } else {
             return Err(Error::new(
@@ -161,23 +163,51 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         ));
     }
 
-    // let headers = HashSet::<&str, RandomState>::from_iter(headers.collect::<Vec<_>>());
-    // let struct_fields = HashSet::<&str, RandomState>::from_iter(struct_fields.into_iter());
+    // Read in the csv file
+    let records = csv_reader
+        .records()
+        .map(|record| {
+            record.map(|record| {
+                // Read the record as a lit float
+                let mut record = record
+                    .iter()
+                    .map(|x| LitFloat::new(&format!("{}{}", x, fields_type), Span::call_site()));
 
-    // let diff = struct_fields.difference(&headers).collect::<Vec<_>>();
+                (
+                    // The first record is the time
+                    record.next().unwrap(),
+                    // The next records get zipped with the fields, as idents
+                    record.zip(&fields).collect::<Vec<_>>(),
+                )
+            })
+        })
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(map_csv_error)?;
 
-    // if !diff.is_empty() {
-    //     return TokenStream::from(quote_spanned! {file.span()=>
-    //         compile_error!(concat!("csv columns ", #(stringify!(#diff)),*, " are missing"));
-    //     });
-    // }
+    fn map_fields_to_assignment((value, field): &(LitFloat, &Ident)) -> TokenStream {
+        quote! {
+            #field: #value
+        }
+    }
 
-    // let mut record = StringRecord::new();
-    // while csv_reader.read_record(&mut record).unwrap() {
-    //     dbg!(&record);
-    // }
+    let low_saturation = records.first().map(|(time, fields)| {
+        let struct_fields = fields.iter().map(map_fields_to_assignment);
 
-    // dbg!(struct_fields);
+        quote! {
+            _ if time <= #time => TimescaleData::Saturation(#struct_name {
+                #(#struct_fields),*
+            }),
+        }
+    });
+    let high_saturation = records.last().map(|(time, fields)| {
+        let struct_fields = fields.iter().map(map_fields_to_assignment);
+
+        quote! {
+            _ if time >= #time => TimescaleData::Saturation(#struct_name {
+                #(#struct_fields),*
+            }),
+        }
+    });
 
     let data_table_struct = input.ident;
 
@@ -188,10 +218,13 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
             #[automatically_derived]
             impl TimescaleDataTable for #data_table_struct {
                 type Datapoint = #st;
+                type Time = #fields_type;
 
-                fn get(time: f64) -> TimescaleData<Self::Datapoint> {
+                fn get(time: Self::Time) -> TimescaleData<Self> {
                     match time {
-
+                        #low_saturation
+                        // #lerps
+                        #high_saturation
                     }
                 }
             }

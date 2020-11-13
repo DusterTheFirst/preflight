@@ -9,3 +9,15 @@ pub struct RocketEngine {
 #[derive(TimescaleDataTable)]
 #[table(file = "csv/Estes_C6.csv", st = RocketEngine)]
 pub struct EstesC6;
+
+#[derive(Lerp, TimescaleData)]
+pub struct H {
+    #[timescale(rename = "Thrust (N)")]
+    thrust: f32,
+    #[timescale(rename = "H")]
+    h: f32,
+}
+
+#[derive(TimescaleDataTable)]
+#[table(file = "csv/H.csv", st = H)]
+pub struct HHH;
