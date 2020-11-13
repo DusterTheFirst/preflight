@@ -9,3 +9,11 @@ pub struct RocketEngine {
 #[derive(TimescaleDataTable)]
 #[table(file = "csv/Estes_C6.csv", st = RocketEngine)]
 pub struct EstesC6;
+
+#[derive(TimescaleDataTable)]
+#[table(file = "csv/Estes_B4.csv", st = RocketEngine)]
+pub struct EstesB4;
+
+#[derive(TimescaleDataTable)]
+#[table(file = "csv/Estes_A8.csv", st = RocketEngine)]
+pub struct EstesA8;

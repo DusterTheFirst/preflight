@@ -37,7 +37,8 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
     // Get the full path to the csv file
     let csv_path = PathBuf::from(format!(
         "{}/{}",
-        std::env::var("CARGO_MANIFEST_DIR").expect("environment variable `CARGO_MANIFEST_DIR` must be set"),
+        std::env::var("CARGO_MANIFEST_DIR")
+            .expect("environment variable `CARGO_MANIFEST_DIR` must be set"),
         file.value()
     ));
 
@@ -98,25 +99,40 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
 
     // Ensure the time header/column is present
     if let Some(time_header) = time_column_name.as_ref() {
-        if let Some(true) = csv_headers.next().map(|h| h == time_header) {
+        if let Some(h) = csv_headers.next() {
+            if h != time_header {
+                return Err(Error::new(
+                    file.span(),
+                    format!(
+                        "expected first column `{}` as specified by the rename on `{}` but found column `{}`",
+                        time_header, struct_name, h
+                    ),
+                ));
+            }
         } else {
             return Err(Error::new(
                 file.span(),
                 format!(
-                    "first column must be exactly `{}` as specified by the rename on `{}`",
+                    "expected first column `{}` as specified by the rename on `{}` but found nothing",
                     time_header, struct_name
                 ),
             ));
         }
     } else {
-        if let Some("Time (s)") = csv_headers.next() {
+        if let Some(h) = csv_headers.next() {
+            if "Time (s)" != h {
+                return Err(Error::new(
+                    file.span(),
+                    format!(
+                        "expected first column `Time (s)` but found `{}`\n\n\t\tnote = you can override this column name using the `#[timescale(rename = \"new name\")]` attribute on the struct `{}`",
+                        h, struct_name
+                    ),
+                ));
+            }
         } else {
             return Err(Error::new(
                 file.span(),
-                format!(
-                    "first column must be exactly `Time (s)` unless overridden by a rename on `{}`",
-                    struct_name
-                ),
+                format!("expected first column `Time (s)` but found nothing",),
             ));
         }
     }
