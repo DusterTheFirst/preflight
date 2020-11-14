@@ -23,5 +23,5 @@ indoc = "1.0.3"
 members = [
     ".",
     "crates/timescale",
-    "crates/timescale/derive",
+    "crates/timescale/macros",
 ]

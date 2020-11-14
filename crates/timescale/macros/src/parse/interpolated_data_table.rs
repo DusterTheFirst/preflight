@@ -4,14 +4,14 @@ use syn::{
     Attribute, Expr, ExprAssign, ExprLit, ExprPath, Lit, LitStr, Path, PathArguments, Token,
 };
 
-/// Arguments to the `derive(TimescaleDataTable)` macro
+/// Arguments to the `derive(InterpolatedDataTable)` macro
 #[derive(Default, Debug)]
-pub struct StructArgs {
+pub struct InterpolatedDataTableArgs {
     pub st: Option<Path>,
     pub file: Option<LitStr>,
 }
 
-impl Parse for StructArgs {
+impl Parse for InterpolatedDataTableArgs {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         // Parse the arguments in as an array of expressions
         let arguments: Punctuated<ExprAssign, Token![,]> =
@@ -86,7 +86,7 @@ impl Parse for StructArgs {
     }
 }
 
-impl StructArgs {
+impl InterpolatedDataTableArgs {
     pub fn parse_attributes(attributes: &[Attribute]) -> syn::Result<Self> {
         attributes
             .iter()
@@ -102,9 +102,9 @@ impl StructArgs {
                     false
                 }
             })
-            .try_fold(StructArgs::default(), |pre, a| {
+            .try_fold(Self::default(), |pre, a| {
                 // Parse the args from the attribute
-                let input = a.parse_args::<StructArgs>()?;
+                let input = a.parse_args::<Self>()?;
 
                 // Ensure no duplicate definitions between attributes
                 if let Some(st) = pre.st {

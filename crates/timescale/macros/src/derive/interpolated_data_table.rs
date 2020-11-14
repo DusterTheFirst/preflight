@@ -1,11 +1,13 @@
-use crate::parse::timescale_data_table::StructArgs;
+use super::interpolated_data::INTERPOLATED_DATA;
+use crate::{
+    derive::interpolated_data::InterpolatedData,
+    parse::interpolated_data_table::InterpolatedDataTableArgs,
+};
 use csv::Reader;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::path::PathBuf;
 use syn::{spanned::Spanned, Error, Fields, Ident, ItemStruct, LitFloat, LitStr, Path};
-
-use super::timescale_data::{DerivedTimescaleData, TIMESCALE_DATA};
 
 pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
     // Ensure the struct has no fields
@@ -14,19 +16,19 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
     }
 
     // Parse the attributes
-    let args = StructArgs::parse_attributes(input.attrs.as_ref())?;
+    let args = InterpolatedDataTableArgs::parse_attributes(input.attrs.as_ref())?;
 
     // Ensure that both args have values
     match args {
-        StructArgs { file: None, .. } => Err(Error::new(
+        InterpolatedDataTableArgs { file: None, .. } => Err(Error::new(
             input.ident.span(),
             "the attribute `#[table(path = ...)]` must be provided with a path to load csv from"
         )),
-        StructArgs { st: None, .. } => Err(Error::new(
+        InterpolatedDataTableArgs { st: None, .. } => Err(Error::new(
             input.ident.span(),
             "the attribute `#[table(struct = ...)]` must be provided with the struct to deserialize the csv as"
         )),
-        StructArgs {
+        InterpolatedDataTableArgs {
             file: Some(file),
             st: Some(st),
         } => Ok(load_csv(file, st, input)?),
@@ -63,8 +65,8 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
     // Load in the metadata from the struct's csv file
     let (time_column_name, fields_type, fields, wanted_headers) = {
         // Read in the fields from the shared data
-        let timescale_data = (*TIMESCALE_DATA).read().unwrap();
-        let DerivedTimescaleData { fields, rename, ty } = timescale_data
+        let timescale_data = (*INTERPOLATED_DATA).read().unwrap();
+        let InterpolatedData { fields, rename, ty } = timescale_data
             .get(&struct_name.to_string())
             .ok_or(Error::new(
                 st.span(),
@@ -213,7 +215,7 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         let struct_fields = fields.iter().map(map_fields_to_assignment);
 
         quote! {
-            _ if time <= #time => TimescaleData::Saturation(#struct_name {
+            _ if time <= #time => InterpolatedDataPoint::Saturation(#struct_name {
                 #(#struct_fields),*
             }),
         }
@@ -224,7 +226,7 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         let struct_fields = fields.iter().map(map_fields_to_assignment);
 
         quote! {
-            _ if time >= #time => TimescaleData::Saturation(#struct_name {
+            _ if time >= #time => InterpolatedDataPoint::Saturation(#struct_name {
                 #(#struct_fields),*
             }),
         }
@@ -247,7 +249,7 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
                 // Add the lerp case to the match statement
                 lerps.push(quote! {
                     _ if time >= #low_time && time < #high_time => {
-                        TimescaleData::Interpolation {
+                        InterpolatedDataPoint::Interpolation {
                             next: #struct_name {
                                 #(#high_fields),*
                             },
@@ -270,14 +272,14 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
 
     Ok(quote! {
         const _: () = {
-            use timescale::TimescaleData;
-
+            use timescale::InterpolatedDataPoint;
+            
             #[automatically_derived]
-            impl TimescaleDataTable for #data_table_struct {
+            impl InterpolatedDataTable for #data_table_struct {
                 type Datapoint = #st;
                 type Time = #fields_type;
 
-                fn get(time: Self::Time) -> TimescaleData<Self> {
+                fn get_raw(time: Self::Time) -> InterpolatedDataPoint<Self> {
                     match time {
                         #low_saturation
                         #(#lerps),*

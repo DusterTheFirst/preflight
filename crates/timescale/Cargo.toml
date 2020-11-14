@@ -3,8 +3,9 @@ name = "timescale"
 version = "0.1.0"
 authors = ["Zachary Kohnen <14093962+DusterTheFirst@users.noreply.github.com>"]
 edition = "2018"
+description = "A crate to work with timescale data and csv files"
 
 [dependencies]
-timescale_derive = { path = "./derive" }
+timescale_macros = { path = "./macros" }
 serde = "1.0"
 lerp = { branch = "derive_macro", git = "https://github.com/DusterTheFirst/lerp-rs/", features = ["derive"] }

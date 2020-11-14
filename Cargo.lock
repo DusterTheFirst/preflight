@@ -1832,11 +1832,11 @@ version = "0.1.0"
 dependencies = [
  "lerp",
  "serde",
- "timescale_derive",
+ "timescale_macros",
 ]
 
 [[package]]
-name = "timescale_derive"
+name = "timescale_macros"
 version = "0.1.0"
 dependencies = [
  "csv",

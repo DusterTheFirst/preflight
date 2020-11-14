@@ -1,4 +1,3 @@
-use crate::parse::timescale_data::RenameArgs;
 use lazy_static::lazy_static;
 use proc_macro2::TokenStream;
 use std::{
@@ -7,13 +6,15 @@ use std::{
 };
 use syn::{spanned::Spanned, Error, Fields, ItemStruct, Path, Type, TypePath};
 
+use crate::parse::interpolated_data::InterpolatedDataArgs;
+
 lazy_static! {
-    pub static ref TIMESCALE_DATA: Arc<RwLock<HashMap<String, DerivedTimescaleData>>> =
+    pub static ref INTERPOLATED_DATA: Arc<RwLock<HashMap<String, InterpolatedData>>> =
         Arc::new(RwLock::new(HashMap::new()));
 }
 
 #[derive(Debug, Clone)]
-pub struct DerivedTimescaleData {
+pub struct InterpolatedData {
     pub fields: Vec<TimescaleFieldData>,
     pub ty: String,
     pub rename: Option<String>,
@@ -35,7 +36,7 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
             // Fill in the self field
             {
                 if let Some(args) =
-                    RenameArgs::parse_attributes(input.attrs.as_slice(), &input.ident)?
+                    InterpolatedDataArgs::parse_attributes(input.attrs.as_slice(), &input.ident)?
                 {
                     rename.replace(args.rename.value());
                 }
@@ -53,7 +54,7 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                     let input_ty = segments.last().unwrap(); // There must be at least one segment in the path for it to be a valid struct
 
                     // Parse the optional rename attribute
-                    let args = RenameArgs::parse_attributes(
+                    let args = InterpolatedDataArgs::parse_attributes(
                         field.attrs.as_slice(),
                         field
                             .ident
@@ -79,10 +80,11 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
             match ty {
                 Some(ty) => {
                     // Get access to the shared struct descriptor table
-                    let mut timescale_data = (*TIMESCALE_DATA).write().unwrap();
+                    let mut timescale_data = (*INTERPOLATED_DATA).write().unwrap();
+
                     timescale_data.insert(
                         input.ident.to_string(),
-                        DerivedTimescaleData { ty, fields, rename },
+                        InterpolatedData { ty, fields, rename },
                     );
 
                     Ok(TokenStream::new())

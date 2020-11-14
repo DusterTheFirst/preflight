@@ -7,13 +7,13 @@ use syn::{
 
 use crate::util::reconstruct;
 
-/// Arguments to the `derive(TimescaleData)` macro
+/// Arguments to the `derive(InterpolatedData)` macro
 #[derive(Debug)]
-pub struct RenameArgs {
+pub struct InterpolatedDataArgs {
     pub rename: LitStr,
 }
 
-impl Parse for RenameArgs {
+impl Parse for InterpolatedDataArgs {
     fn parse(input: ParseStream) -> Result<Self> {
         Ok(Self {
             rename: input.parse()?,
@@ -21,7 +21,7 @@ impl Parse for RenameArgs {
     }
 }
 
-impl RenameArgs {
+impl InterpolatedDataArgs {
     pub fn parse_attributes(attrs: &[Attribute], field: &Ident) -> Result<Option<Self>> {
         Ok(attrs
             .iter()
@@ -32,7 +32,7 @@ impl RenameArgs {
                     // attribute and also has the name timescale
                     attr.style == AttrStyle::Outer
                         && segment.arguments == PathArguments::None
-                        && segment.ident.to_string() == "timescale"
+                        && segment.ident.to_string() == "data"
                 } else {
                     false
                 }
