@@ -21,7 +21,7 @@ pub enum InterpolatedDataPoint<Table: InterpolatedDataTable> {
 }
 
 /// Trait to allow for linear interpolation through a static timescale table
-pub trait InterpolatedDataTable: Sized {
+pub trait InterpolatedDataTable: Send + Sync + Sized + 'static {
     type Datapoint: Lerp<Self::Time>;
     type Time;
 

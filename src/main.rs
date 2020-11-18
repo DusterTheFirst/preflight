@@ -1,7 +1,7 @@
 use data_log::DataLogger;
-use kiss3d::{camera::ArcBall, light::Light, text::Font, widget_ids, window::Window};
+use kiss3d::{camera::ArcBall, light::Light, text::Font, window::Window};
 use log::{error, info, warn, LevelFilter};
-use nalgebra::{DVectorSlice, Point2, Point3, Translation3, Vector3};
+use nalgebra::{Point2, Point3, Translation3, Vector3};
 use ncollide3d::shape::{Cuboid, ShapeHandle};
 use nphysics3d::{
     algebra::Force3,
@@ -22,7 +22,7 @@ use timescale::ToTimescale;
 use ui::{gui, theme, Ids};
 
 mod data_log;
-mod force_generator;
+mod motors;
 mod ui;
 
 #[derive(Debug, Clone, ToTimescale)]
@@ -38,9 +38,9 @@ fn main() {
     // Setup csv logging
     let mut logger = DataLogger::<VectorDatapoints>::new().unwrap();
 
-    /* // Create a window for graphics
+    // Create a window for graphics
     let mut window = Window::new("Simulation");
-    window.set_background_color(0.0, 0.5, 1.0);
+    // window.set_background_color(0.0, 0.5, 1.0);
     // window.set_light(Light::Absolute(Point3::new(100.0, 1000.0, 300.0)));
     window.set_light(Light::StickToCamera);
     window.set_framerate_limit(Some(60));
@@ -55,10 +55,10 @@ fn main() {
 
     // Create the camera to render from
     let mut camera = ArcBall::new(Point3::new(5.0, 2.0, -1.0), Point3::origin());
-    camera.set_dist(100.0);
+    camera.set_dist(350.0);
     // camera.rebind_drag_button(None);
     // camera.rebind_rotate_button(None);
-    // camera.rebind_reset_key(None); */
+    // camera.rebind_reset_key(None);
 
     // Setup the physics objects
     let mut mechanical_world = DefaultMechanicalWorld::<f64>::new(Vector3::y() * -9.81);
@@ -81,13 +81,13 @@ fn main() {
             .build(BodyPartHandle(rocket_body_handle, 0)),
     );
 
-    /* // Create the visible rocket
+    // Create the visible rocket
     let mut visible_rocket = window.add_cube(
         (rocket_shape.half_extents[0] * 2.0) as f32,
         (rocket_shape.half_extents[1] * 2.0) as f32,
         (rocket_shape.half_extents[2] * 2.0) as f32,
     );
-    visible_rocket.set_color(1.0, 0.0, 0.0); */
+    visible_rocket.set_color(1.0, 0.0, 0.0);
 
     // Create the ground physics object
     let ground_handle = bodies.insert(RigidBodyDesc::new().gravity_enabled(false).build());
@@ -96,13 +96,13 @@ fn main() {
         ColliderDesc::new(ShapeHandle::new(ground_shape)).build(BodyPartHandle(ground_handle, 0)),
     );
 
-    /* // Create the visible ground
+    // Create the visible ground
     let mut ground = window.add_cube(
         (ground_shape.half_extents[0] * 2.0) as f32,
         (ground_shape.half_extents[1] * 2.0) as f32,
         (ground_shape.half_extents[2] * 2.0) as f32,
     );
-    ground.set_color(0.0, 1.0, 0.0); */
+    ground.set_color(0.0, 1.0, 0.0);
 
     // Hold the elapsed time
     let mut elapsed_time: f64 = 0.0;
@@ -127,9 +127,7 @@ fn main() {
     }
 
     // The simulation loop
-    while !stopped.load(Ordering::Relaxed)
-    /* && window.render_with_camera(&mut camera) */
-    {
+    while !stopped.load(Ordering::Relaxed) && window.render_with_camera(&mut camera) {
         // Physics
         {
             // Apply the thrust force to the rocket
@@ -138,7 +136,7 @@ fn main() {
 
             rocket_body.apply_force(
                 0,
-                &Force3::new(Vector3::new(0.0, 10.0, 20.0), Vector3::new(0.0, 0.0, 0.0)),
+                &Force3::new(Vector3::new(0.0, 10.0, 0.0), Vector3::new(0.0, 0.0, 0.0)),
                 ForceType::Force,
                 true,
             );
@@ -170,7 +168,7 @@ fn main() {
         }
 
         // Rendering
-        /* {
+        {
             let rocket_position: Vector3<f32> =
                 nalgebra::convert(rocket_body.position().translation.vector);
             let rocket_velocity: Vector3<f32> = nalgebra::convert(rocket_body.velocity().linear);
@@ -237,7 +235,7 @@ fn main() {
                 &font_regular,
                 &Point3::new(1.0, 1.0, 1.0),
             )
-        } */
+        }
     }
 
     if let Err(e) = logger.flush() {

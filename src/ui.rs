@@ -1,3 +1,4 @@
+use conrod::color::Color;
 use kiss3d::{
     conrod::{
         self,
@@ -5,11 +6,15 @@ use kiss3d::{
         position::{Align, Direction, Relative},
         widget,
         widget::Canvas,
+        widget::PlotPath,
         Colorable, Labelable, Position, Positionable, Sizeable, Theme, Widget,
     },
     widget_ids,
 };
 use log::trace;
+use timescale::InterpolatedDataTable;
+
+use crate::motors::EstesC6;
 
 pub fn theme() -> conrod::Theme {
     Theme {
@@ -39,6 +44,8 @@ widget_ids! {
         // The title and introduction widgets.
         title_vel_x_slider,
         vel_x_slider,
+        // The widget used for graphs
+        motor_graph
     }
 }
 
@@ -52,8 +59,8 @@ pub fn gui(ui: &mut conrod::UiCell, ids: &Ids) {
     const ALPHA: f32 = 0.9;
 
     Canvas::new()
-        //            .title_bar("Demos")
-        //            .title_bar_color(conrod::color::Color::Rgba(1.0, 0.0, 0.0, 1.0))
+        .title_bar("Demos")
+        .title_bar_color(Color::Rgba(1.0, 0.0, 0.0, 1.0))
         //            .pad(100.0)
         //            .pad_left(MARGIN)
         //            .pad_right(MARGIN)
@@ -62,6 +69,10 @@ pub fn gui(ui: &mut conrod::UiCell, ids: &Ids) {
         .w(SIDEBAR_W)
         .padded_h_of(ui.window, 10.0)
         .set(ids.canvas, ui);
+
+    PlotPath::new(0.0, 10.0, 0.0, 1000.0, |x| EstesC6::get(x).thrust)
+        // .title("Estes C6 thrust (N)")
+        .set(ids.motor_graph, ui);
 
     // conrod::widget::Text::new("Vel. Iters.:")
     //     .set(ids.title_vel_x_slider, &mut ui);
