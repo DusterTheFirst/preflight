@@ -10,16 +10,22 @@ csv = "1.1.4"
 ctrlc = "3.1.7"
 kiss3d = { version = "0.27.0", features = ["conrod"] }
 log = "0.4.11"
-nalgebra = { version = "0.23.0", features = ["serde-serialize", "debug"] }
+nalgebra = { version = "0.23.1", features = ["serde-serialize", "debug"] }
 ncollide3d = "0.26.1"
 nphysics3d = "0.18.0"
 serde = { version = "1.0.117", features = ["derive"] }
 simplelog = "0.8.0"
 timescale = { path = "./crates/timescale" }
 indoc = "1.0.3"
+dialoguer = "0.7.1"
+color-eyre = "0.5.7"
 
 [workspace]
 members = [".", "crates/timescale", "crates/timescale/macros"]
 
 [profile.release]
 lto = "thin"
+
+# Optimization for color-eyre
+[profile.dev.package.backtrace]
+opt-level = 3

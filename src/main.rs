@@ -1,6 +1,10 @@
-use data_log::DataLogger;
+use color_eyre::{eyre::eyre, Help};
+use data_log::{CsvLogger, DataLogger, NopLogger};
+use dialoguer::Confirm;
+use dialoguer::Input;
 use kiss3d::{camera::ArcBall, light::Light, text::Font, window::Window};
 use log::{error, info, warn, LevelFilter};
+use motors::{EstesC6, RocketMotorForceGenerator};
 use nalgebra::{Point2, Point3, Translation3, Vector3};
 use ncollide3d::shape::{Cuboid, ShapeHandle};
 use nphysics3d::{
@@ -28,15 +32,41 @@ mod ui;
 #[derive(Debug, Clone, ToTimescale)]
 struct VectorDatapoints {
     position: Vector3<f64>,
+    velocity: Vector3<f64>,
+    acceleration: Vector3<f64>,
+    net_force: Vector3<f64>,
 }
 
 // TODO: anyhow?
-fn main() {
+fn main() -> color_eyre::Result<()> {
+    color_eyre::install()?;
+
     // Setup stdout/err logging
-    TermLogger::init(LevelFilter::Trace, Config::default(), TerminalMode::Mixed).unwrap();
+    TermLogger::init(LevelFilter::Trace, Config::default(), TerminalMode::Mixed)
+        .note("The logger was unable to be initialized")?;
+
+    // Prompt for purpose
+    let confirm = Confirm::new()
+        .with_prompt("Do you want to log the data for this simulation run?")
+        .default(false)
+        .interact()
+        .note("Failed waiting for user input")?;
 
     // Setup csv logging
-    let mut logger = DataLogger::<VectorDatapoints>::new().unwrap();
+    let mut logger: Box<dyn DataLogger<VectorDatapoints>>;
+
+    if confirm {
+        let purpose: String = Input::new()
+            .with_prompt("What is the purpose of this data logging?")
+            .interact()
+            .note("Failed waiting for user input")?;
+
+        logger = Box::new(
+            CsvLogger::new(&purpose, confirm).note("Failed in creating the csv data logger")?,
+        );
+    } else {
+        logger = Box::new(NopLogger);
+    }
 
     // Create a window for graphics
     let mut window = Window::new("Simulation");
@@ -49,9 +79,12 @@ fn main() {
     let ids = Ids::new(window.conrod_ui_mut().widget_id_generator());
     window.conrod_ui_mut().theme = theme();
 
-    let font_regular =
-        Font::from_bytes(include_bytes!("../fonts/SourceCodePro-Regular.ttf")).unwrap();
-    let font_bold = Font::from_bytes(include_bytes!("../fonts/SourceCodePro-Bold.ttf")).unwrap();
+    let font_regular = Font::from_bytes(include_bytes!("../fonts/SourceCodePro-Regular.ttf"))
+        .ok_or_else(|| eyre!("Failed to load in the Regular font file"))
+        .suggestion("Make sure the file is not corrupt and is a valid font file")?;
+    let font_bold = Font::from_bytes(include_bytes!("../fonts/SourceCodePro-Bold.ttf"))
+        .ok_or_else(|| eyre!("Failed to load in the Bold font file"))
+        .suggestion("Make sure the file is not corrupt and is a valid font file")?;
 
     // Create the camera to render from
     let mut camera = ArcBall::new(Point3::new(5.0, 2.0, -1.0), Point3::origin());
@@ -69,17 +102,23 @@ fn main() {
     let mut force_generators = DefaultForceGeneratorSet::<f64>::new();
 
     // Create the rocket physics object
+    let rocket_shape = Cuboid::new(Vector3::new(10.0, 10.0, 10.0));
     let rocket_body_handle = bodies.insert(
         RigidBodyDesc::new()
-            .translation(Vector3::new(0.0, 100.0, 0.0))
+            .translation(Vector3::new(0.0, rocket_shape.half_extents[1], 0.0))
             .mass(0.100)
             .build(),
     );
-    let rocket_shape = Cuboid::new(Vector3::new(10.0, 10.0, 10.0));
     let rocket_collider_handle = colliders.insert(
         ColliderDesc::new(ShapeHandle::new(rocket_shape))
             .build(BodyPartHandle(rocket_body_handle, 0)),
     );
+
+    // Create the motor force generator
+    let mut motor_force_generator = RocketMotorForceGenerator::<EstesC6>::new();
+    motor_force_generator.add_body_part(BodyPartHandle(rocket_body_handle, 0));
+
+    force_generators.insert(Box::new(motor_force_generator));
 
     // Create the visible rocket
     let mut visible_rocket = window.add_cube(
@@ -128,20 +167,6 @@ fn main() {
 
     // The simulation loop
     while !stopped.load(Ordering::Relaxed) && window.render_with_camera(&mut camera) {
-        // Physics
-        {
-            // Apply the thrust force to the rocket
-            let rocket_body = bodies.rigid_body_mut(rocket_body_handle).unwrap();
-            let rocket_collider = colliders.get_mut(rocket_collider_handle).unwrap();
-
-            rocket_body.apply_force(
-                0,
-                &Force3::new(Vector3::new(0.0, 10.0, 0.0), Vector3::new(0.0, 0.0, 0.0)),
-                ForceType::Force,
-                true,
-            );
-        }
-
         // Run the simulation.
         mechanical_world.step(
             &mut geometrical_world,
@@ -153,38 +178,57 @@ fn main() {
         // Increment the elapsed time by the step that the mechanical world has taken
         elapsed_time += mechanical_world.timestep();
 
-        let rocket_body = bodies.rigid_body_mut(rocket_body_handle).unwrap();
+        let rocket_body = bodies
+            .rigid_body_mut(rocket_body_handle)
+            .ok_or_else(|| {
+                eyre!("Unable to get the rocket from the bodies list... This should never happen")
+            })
+            .suggestion("Make sure you are not removing the rocket body from the bodies list")?;
 
-        // Logging
         {
-            logger
-                .add_data_point(
-                    elapsed_time,
-                    VectorDatapoints {
-                        position: rocket_body.position().translation.vector,
-                    },
-                )
-                .unwrap();
-        }
+            let rocket_position = rocket_body.position().translation.vector;
+            let rocket_velocity = rocket_body.velocity().linear;
+            let rocket_acceleration = {
+                let acc = rocket_body.generalized_acceleration();
 
-        // Rendering
-        {
-            let rocket_position: Vector3<f32> =
-                nalgebra::convert(rocket_body.position().translation.vector);
-            let rocket_velocity: Vector3<f32> = nalgebra::convert(rocket_body.velocity().linear);
-            let rocket_acceleration = rocket_body.generalized_acceleration().map(|x| x as f32);
+                Vector3::new(acc[0], acc[1], acc[2])
+            };
+            let rocket_net_force = rocket_acceleration.scale(rocket_body.augmented_mass().linear);
 
-            visible_rocket.set_local_translation(Translation3::from(rocket_position));
-
-            camera.set_at(Point3::from(rocket_position));
-
+            // Logging
             {
-                let mut ui = window.conrod_ui_mut().set_widgets();
-                gui(&mut ui, &ids);
+                logger
+                    .add_data_point(
+                        elapsed_time,
+                        VectorDatapoints {
+                            position: rocket_position,
+                            velocity: rocket_velocity,
+                            acceleration: rocket_acceleration,
+                            net_force: rocket_net_force,
+                        },
+                    )
+                    .note("Failed to log the data point")?;
             }
 
-            window.draw_text(
-                &format!(indoc::indoc! {"
+            // Rendering
+            {
+                // Dumb down to f32 for rendering
+                let rocket_position: Vector3<f32> = nalgebra::convert(rocket_position);
+                let rocket_velocity: Vector3<f32> = nalgebra::convert(rocket_velocity);
+                let rocket_acceleration: Vector3<f32> = nalgebra::convert(rocket_acceleration);
+
+                visible_rocket.set_local_translation(Translation3::from(rocket_position));
+
+                camera.set_at(Point3::from(rocket_position));
+
+                {
+                    let mut ui = window.conrod_ui_mut().set_widgets();
+                    gui(&mut ui, &ids);
+                }
+
+                window.draw_text(
+                    &format!(indoc::indoc! {"
+                    Time: 
                     Position
                         x:
                         y:
@@ -197,44 +241,58 @@ fn main() {
                         x:
                         y:
                         z:
+                    Net Force
+                        x:
+                        y:
+                        z:
                 "}),
-                &Point2::new(0.0, 0.0),
-                50.0,
-                &font_bold,
-                &Point3::new(1.0, 1.0, 1.0),
-            );
+                    &Point2::new(0.0, 0.0),
+                    50.0,
+                    &font_bold,
+                    &Point3::new(1.0, 1.0, 1.0),
+                );
 
-            window.draw_text(
-                &format!(
-                    indoc::indoc! {"
+                window.draw_text(
+                    &format!(
+                        indoc::indoc! {"
+                        {:+.5} s
 
-                        {:+.5}
-                        {:+.5}
-                        {:+.5}
+                        {:+.5} m
+                        {:+.5} m
+                        {:+.5} m
 
-                        {:+.5}
-                        {:+.5}
-                        {:+.5}
+                        {:+.5} m/s
+                        {:+.5} m/s
+                        {:+.5} m/s
 
-                        {:+.5}
-                        {:+.5}
-                        {:+.5}
+                        {:+.5} m/s^2
+                        {:+.5} m/s^2
+                        {:+.5} m/s^2
+
+                        {:+.5} N
+                        {:+.5} N
+                        {:+.5} N
                     "},
-                    rocket_position[0],
-                    rocket_position[1],
-                    rocket_position[2],
-                    rocket_velocity[0],
-                    rocket_velocity[1],
-                    rocket_velocity[2],
-                    rocket_acceleration[0],
-                    rocket_acceleration[1],
-                    rocket_acceleration[2]
-                ),
-                &Point2::new(150.0, 0.0),
-                50.0,
-                &font_regular,
-                &Point3::new(1.0, 1.0, 1.0),
-            )
+                        elapsed_time,
+                        rocket_position[0],
+                        rocket_position[1],
+                        rocket_position[2],
+                        rocket_velocity[0],
+                        rocket_velocity[1],
+                        rocket_velocity[2],
+                        rocket_acceleration[0],
+                        rocket_acceleration[1],
+                        rocket_acceleration[2],
+                        rocket_net_force[0],
+                        rocket_net_force[1],
+                        rocket_net_force[2]
+                    ),
+                    &Point2::new(150.0, 0.0),
+                    50.0,
+                    &font_regular,
+                    &Point3::new(1.0, 1.0, 1.0),
+                )
+            }
         }
     }
 
@@ -247,4 +305,6 @@ fn main() {
     }
 
     info!("Halted!");
+
+    Ok(())
 }

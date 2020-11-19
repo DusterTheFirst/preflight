@@ -1,5 +1,5 @@
 use chrono::Local;
-use csv::{Writer, WriterBuilder};
+use csv::Writer;
 use std::{
     fs::{create_dir_all, File},
     io,
@@ -8,43 +8,75 @@ use std::{
 };
 use timescale::ToTimescale;
 
-pub struct DataLogger<Datapoint: ToTimescale> {
-    writer: Writer<File>,
-    data: PhantomData<Datapoint>,
+pub trait DataLogger<Datapoint> {
+    fn flush(&mut self) -> io::Result<()>;
+    fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> io::Result<()>;
+    fn enable(&mut self);
+    fn disable(&mut self);
 }
 
-impl<Datapoint: ToTimescale> DataLogger<Datapoint> {
-    fn find_file() -> io::Result<File> {
+pub struct CsvLogger<Datapoint: ToTimescale> {
+    writer: Writer<File>,
+    data: PhantomData<Datapoint>,
+    enabled: bool,
+}
+
+impl<Datapoint: ToTimescale> CsvLogger<Datapoint> {
+    pub fn new(purpose: &str, enabled: bool) -> io::Result<Self> {
         // Look in current directory for existing data dir
         let mut path = PathBuf::new();
-        path.push("./data");
+        path.push("simulation_data");
+
+        let local_time = Local::now();
+        path.push(local_time.format("%Y").to_string()); // TODO:
 
         if !path.exists() {
             create_dir_all(&path)?;
         }
 
-        let local_time = Local::now();
         path.push(format!("{}.csv", local_time.format("%Y-%m-%d-%H-%M-%S")));
 
-        File::create(path)
-    }
-
-    pub fn new() -> io::Result<Self> {
-        Ok(Self::from_file(Self::find_file()?))
-    }
-
-    pub fn from_file(file: File) -> Self {
-        Self {
-            writer: WriterBuilder::new().from_writer(file),
+        Ok(Self {
             data: PhantomData,
-        }
+            enabled,
+            writer: Writer::from_path(path)?,
+        })
     }
+}
 
-    pub fn flush(&mut self) -> io::Result<()> {
+impl<Datapoint: ToTimescale> DataLogger<Datapoint> for CsvLogger<Datapoint> {
+    fn flush(&mut self) -> io::Result<()> {
         self.writer.flush()
     }
 
-    pub fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> csv::Result<()> {
-        self.writer.serialize(data_point.with_time(time))
+    fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> io::Result<()> {
+        if self.enabled {
+            self.writer
+                .serialize(data_point.with_time(time))
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+        } else {
+            Ok(())
+        }
     }
+
+    fn enable(&mut self) {
+        self.enabled = true;
+    }
+
+    fn disable(&mut self) {
+        self.enabled = false;
+    }
+}
+
+pub struct NopLogger;
+
+impl<Datapoint: ToTimescale> DataLogger<Datapoint> for NopLogger {
+    fn flush(&mut self) -> io::Result<()> {
+        Ok(())
+    }
+    fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> io::Result<()> {
+        Ok(())
+    }
+    fn enable(&mut self) {}
+    fn disable(&mut self) {}
 }

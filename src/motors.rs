@@ -1,11 +1,10 @@
-use std::marker::PhantomData;
-
-use nalgebra::{Point3, Vector3};
+use nalgebra::Vector3;
 use nphysics3d::{
     force_generator::ForceGenerator,
     math::{Force, ForceType},
-    object::{BodyPartHandle, DefaultBodyPartHandle, DefaultColliderHandle, RigidBody},
+    object::{DefaultBodyPartHandle, DefaultColliderHandle},
 };
+use std::marker::PhantomData;
 use timescale::{InterpolatedData, InterpolatedDataTable, Lerp};
 
 #[derive(Lerp, InterpolatedData)]
@@ -22,6 +21,25 @@ where
     /// Body parts affected by the force generator
     parts: Vec<DefaultBodyPartHandle>,
     total_time: f64,
+}
+
+impl<Table> RocketMotorForceGenerator<Table>
+where
+    Table: InterpolatedDataTable<Datapoint = RocketEngine, Time = f64>,
+{
+    pub fn new() -> Self {
+        Self {
+            _table: PhantomData,
+            parts: Vec::new(),
+            total_time: 0.0,
+        }
+    }
+
+    pub fn add_body_part(&mut self, part: DefaultBodyPartHandle) -> &mut Self {
+        self.parts.push(part);
+
+        self
+    }
 }
 
 impl<Table> ForceGenerator<f64, DefaultColliderHandle> for RocketMotorForceGenerator<Table>
