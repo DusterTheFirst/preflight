@@ -14,7 +14,7 @@ use kiss3d::{
 use log::trace;
 use timescale::InterpolatedDataTable;
 
-use crate::motors::EstesC6;
+use crate::force_generator::motor::EstesC6;
 
 pub fn theme() -> conrod::Theme {
     Theme {

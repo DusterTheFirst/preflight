@@ -1,9 +1,14 @@
+//! A crate to work with timescale data and csv files
+
+#![warn(clippy::pedantic, missing_docs)]
+
 pub use lerp::Lerp;
 use serde::Serialize;
 
 /// Trait to allow data points to be expanded into their timescaled and serializable counterpart
 /// by appending the time
 pub trait ToTimescale {
+    /// The timescale data that will be produced
     type Timescale: Serialize;
 
     /// Create the equivalent timescaled data point by appending the time
@@ -11,23 +16,39 @@ pub trait ToTimescale {
     fn with_time(self, time: f64) -> Self::Timescale;
 }
 
-pub enum InterpolatedDataPoint<Table: InterpolatedDataTable> {
+/// A constant datapoint that could be interpolated or saturated
+pub enum InterpolatedDataPoint<Datapoint, Time> {
+    /// A datapoint that needs to be interpolated    
     Interpolation {
-        prev: Table::Datapoint,
-        next: Table::Datapoint,
-        percent: Table::Time,
+        /// The previous datapoint
+        prev: Datapoint,
+        /// The next datapoint
+        next: Datapoint,
+        /// The percent that this datapoint is between the two datapoints.
+        ///
+        /// This is 0 if this datapoint is on the `prev` datapoint and 1 if this datapoint
+        /// is on the `next` datapoint
+        percent: Time,
     },
-    Saturation(Table::Datapoint),
+    /// A datapoint that is outside of the input domain and is saturated at the last given value
+    Saturation(Datapoint),
 }
 
 /// Trait to allow for linear interpolation through a static timescale table
-pub trait InterpolatedDataTable: Send + Sync + Sized + 'static {
+pub trait InterpolatedDataTable: Send + Sync + 'static {
+    /// The datapoint type
     type Datapoint: Lerp<Self::Time>;
+    /// The scalar used for timing, Only f64 or f32 are supported
     type Time;
+
+    /// The minimum time value that is in the dataset
+    const MIN: Self::Time;
+    /// The maximum time value that is in the dataset
+    const MAX: Self::Time;
 
     /// Get a data from the lookup table with all metadata attached. Prefer to use the `get` method, for
     /// this method is an implementation detail
-    fn get_raw(time: Self::Time) -> InterpolatedDataPoint<Self>;
+    fn get_raw(time: Self::Time) -> InterpolatedDataPoint<Self::Datapoint, Self::Time>;
 
     /// Get data from the lookup table, linear interpolating between points
     /// if the time given is between 2 points on the table, fully saturating
@@ -62,7 +83,10 @@ mod test {
         type Datapoint = f32;
         type Time = f32;
 
-        fn get_raw(time: Self::Time) -> InterpolatedDataPoint<Self> {
+        const MIN: Self::Time = 0.0;
+        const MAX: Self::Time = 1.0;
+
+        fn get_raw(time: Self::Time) -> InterpolatedDataPoint<Self::Datapoint, Self::Time> {
             match time {
                 _ if time <= 0.0 => InterpolatedDataPoint::Saturation(0.0),
                 // 0.0 => TimescaleData::Literal(0.0),
@@ -133,7 +157,10 @@ mod test {
         type Datapoint = Data2;
         type Time = f64;
 
-        fn get_raw(time: f64) -> InterpolatedDataPoint<Self> {
+        const MIN: Self::Time = 0.0;
+        const MAX: Self::Time = 1.0;
+
+        fn get_raw(time: f64) -> InterpolatedDataPoint<Self::Datapoint, Self::Time> {
             match time {
                 _ if time <= 0.0 => InterpolatedDataPoint::Saturation(Data2(0.0, 0.0)),
                 // 0.0 => TimescaleData::Literal(0.0),

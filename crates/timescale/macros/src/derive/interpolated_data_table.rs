@@ -211,26 +211,44 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
     }
 
     // Generate the low saturation from the first datapoint
-    let low_saturation = records.first().map(|(time, fields)| {
-        let struct_fields = fields.iter().map(map_fields_to_assignment);
+    let (low_saturation, low_value) = records
+        .first()
+        .map(|(time, fields)| {
+            let struct_fields = fields.iter().map(map_fields_to_assignment);
 
-        quote! {
-            _ if time <= #time => InterpolatedDataPoint::Saturation(#struct_name {
-                #(#struct_fields),*
-            }),
-        }
-    });
+            (
+                quote! {
+                    _ if time <= #time => InterpolatedDataPoint::Saturation(#struct_name {
+                        #(#struct_fields),*
+                    }),
+                },
+                time,
+            )
+        })
+        .ok_or(Error::new(
+            file.span(),
+            "csv file must have at least one entry of data",
+        ))?;
 
     // Generate the high saturation from the last datapoint
-    let high_saturation = records.last().map(|(time, fields)| {
-        let struct_fields = fields.iter().map(map_fields_to_assignment);
+    let (high_saturation, high_value) = records
+        .last()
+        .map(|(time, fields)| {
+            let struct_fields = fields.iter().map(map_fields_to_assignment);
 
-        quote! {
-            _ if time >= #time => InterpolatedDataPoint::Saturation(#struct_name {
-                #(#struct_fields),*
-            }),
-        }
-    });
+            (
+                quote! {
+                    _ if time >= #time => InterpolatedDataPoint::Saturation(#struct_name {
+                        #(#struct_fields),*
+                    }),
+                },
+                time,
+            )
+        })
+        .ok_or(Error::new(
+            file.span(),
+            "csv file must have at least one entry of data",
+        ))?;
 
     // Only generate the linear interpolations if there are more than one record to interpolate between
     let lerps = if records.len() == 1 {
@@ -273,13 +291,16 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
     Ok(quote! {
         const _: () = {
             use timescale::InterpolatedDataPoint;
-            
+
             #[automatically_derived]
             impl InterpolatedDataTable for #data_table_struct {
                 type Datapoint = #st;
                 type Time = #fields_type;
 
-                fn get_raw(time: Self::Time) -> InterpolatedDataPoint<Self> {
+                const MIN: Self::Time = #low_value;
+                const MAX: Self::Time = #high_value;
+
+                fn get_raw(time: Self::Time) -> InterpolatedDataPoint<Self::Datapoint, Self::Time> {
                     match time {
                         #low_saturation
                         #(#lerps),*

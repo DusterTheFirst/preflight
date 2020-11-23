@@ -28,7 +28,7 @@ impl<Datapoint: ToTimescale> CsvLogger<Datapoint> {
         path.push("simulation_data");
 
         let local_time = Local::now();
-        path.push(local_time.format("%Y").to_string()); // TODO:
+        path.push(purpose);
 
         if !path.exists() {
             create_dir_all(&path)?;
@@ -74,7 +74,7 @@ impl<Datapoint: ToTimescale> DataLogger<Datapoint> for NopLogger {
     fn flush(&mut self) -> io::Result<()> {
         Ok(())
     }
-    fn add_data_point(&mut self, time: f64, data_point: Datapoint) -> io::Result<()> {
+    fn add_data_point(&mut self, _: f64, _: Datapoint) -> io::Result<()> {
         Ok(())
     }
     fn enable(&mut self) {}

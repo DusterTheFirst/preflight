@@ -1,32 +1,38 @@
 use color_eyre::{eyre::eyre, Help};
 use data_log::{CsvLogger, DataLogger, NopLogger};
-use dialoguer::Confirm;
-use dialoguer::Input;
+use dialoguer::{theme::ColorfulTheme, Confirm};
+use dialoguer::{Input, Select};
+use force_generator::{
+    constant::Spin,
+    motor::{EstesC6, RocketMotorForceGenerator},
+};
 use kiss3d::{camera::ArcBall, light::Light, text::Font, window::Window};
 use log::{error, info, warn, LevelFilter};
-use motors::{EstesC6, RocketMotorForceGenerator};
 use nalgebra::{Point2, Point3, Translation3, Vector3};
 use ncollide3d::shape::{Cuboid, ShapeHandle};
 use nphysics3d::{
-    algebra::Force3,
     force_generator::DefaultForceGeneratorSet,
     joint::DefaultJointConstraintSet,
-    math::ForceType,
     object::{
-        Body, BodyPartHandle, ColliderDesc, DefaultBodySet, DefaultColliderSet, RigidBodyDesc,
+        Body, BodyPartHandle, ColliderDesc, DefaultBodySet, DefaultColliderSet, Ground,
+        RigidBodyDesc,
     },
     world::{DefaultGeometricalWorld, DefaultMechanicalWorld},
 };
 use simplelog::{Config, TermLogger, TerminalMode};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    f64::consts::PI,
+    fs,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 use timescale::ToTimescale;
 use ui::{gui, theme, Ids};
 
 mod data_log;
-mod motors;
+mod force_generator;
 mod ui;
 
 #[derive(Debug, Clone, ToTimescale)]
@@ -46,7 +52,7 @@ fn main() -> color_eyre::Result<()> {
         .note("The logger was unable to be initialized")?;
 
     // Prompt for purpose
-    let confirm = Confirm::new()
+    let confirm = Confirm::with_theme(&ColorfulTheme::default())
         .with_prompt("Do you want to log the data for this simulation run?")
         .default(false)
         .interact()
@@ -56,10 +62,30 @@ fn main() -> color_eyre::Result<()> {
     let mut logger: Box<dyn DataLogger<VectorDatapoints>>;
 
     if confirm {
-        let purpose: String = Input::new()
-            .with_prompt("What is the purpose of this data logging?")
-            .interact()
-            .note("Failed waiting for user input")?;
+        let items = fs::read_dir("simulation_data")
+            .note("Failed to read the `simulation_data` directory")?
+            .filter_map(|f| f.map(|e| e.file_name().to_string_lossy().to_string()).ok())
+            .collect::<Vec<_>>();
+
+        let purpose: String;
+
+        let selection = if !items.is_empty() {
+            Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Choose an existing category or press escape to create a new one.")
+                .items(&items)
+                .interact_opt()?
+        } else {
+            None
+        };
+
+        if let Some(selection) = selection {
+            purpose = items[selection].to_string();
+        } else {
+            purpose = Input::with_theme(&ColorfulTheme::default())
+                .with_prompt("What is the purpose of this data logging?")
+                .interact()
+                .note("Failed waiting for user input")?; // TODO: MOVE
+        }
 
         logger = Box::new(
             CsvLogger::new(&purpose, confirm).note("Failed in creating the csv data logger")?,
@@ -79,16 +105,16 @@ fn main() -> color_eyre::Result<()> {
     let ids = Ids::new(window.conrod_ui_mut().widget_id_generator());
     window.conrod_ui_mut().theme = theme();
 
-    let font_regular = Font::from_bytes(include_bytes!("../fonts/SourceCodePro-Regular.ttf"))
+    let font_regular = Font::from_bytes(include_bytes!("../fonts/SourceCodePro/SourceCodePro-Regular.ttf"))
         .ok_or_else(|| eyre!("Failed to load in the Regular font file"))
         .suggestion("Make sure the file is not corrupt and is a valid font file")?;
-    let font_bold = Font::from_bytes(include_bytes!("../fonts/SourceCodePro-Bold.ttf"))
+    let font_bold = Font::from_bytes(include_bytes!("../fonts/SourceCodePro/SourceCodePro-Bold.ttf"))
         .ok_or_else(|| eyre!("Failed to load in the Bold font file"))
         .suggestion("Make sure the file is not corrupt and is a valid font file")?;
 
     // Create the camera to render from
     let mut camera = ArcBall::new(Point3::new(5.0, 2.0, -1.0), Point3::origin());
-    camera.set_dist(350.0);
+    camera.set_dist(50.0);
     // camera.rebind_drag_button(None);
     // camera.rebind_rotate_button(None);
     // camera.rebind_reset_key(None);
@@ -102,23 +128,28 @@ fn main() -> color_eyre::Result<()> {
     let mut force_generators = DefaultForceGeneratorSet::<f64>::new();
 
     // Create the rocket physics object
-    let rocket_shape = Cuboid::new(Vector3::new(10.0, 10.0, 10.0));
+    let rocket_shape = Cuboid::new(Vector3::new(1.0, 1.0, 1.0));
     let rocket_body_handle = bodies.insert(
         RigidBodyDesc::new()
             .translation(Vector3::new(0.0, rocket_shape.half_extents[1], 0.0))
-            .mass(0.100)
+            .mass(0.350)
             .build(),
     );
     let rocket_collider_handle = colliders.insert(
         ColliderDesc::new(ShapeHandle::new(rocket_shape))
+            .ccd_enabled(true)
             .build(BodyPartHandle(rocket_body_handle, 0)),
     );
 
     // Create the motor force generator
     let mut motor_force_generator = RocketMotorForceGenerator::<EstesC6>::new();
-    motor_force_generator.add_body_part(BodyPartHandle(rocket_body_handle, 0));
+    motor_force_generator
+        .add_body_part(BodyPartHandle(rocket_body_handle, 0))
+        .set_angle((5.0 / 360.0) * PI, (5.0 / 360.0) * PI);
 
-    force_generators.insert(Box::new(motor_force_generator));
+    let motor_force_generator_handle = force_generators.insert(motor_force_generator);
+
+    // force_generators.insert(Spin::new(&[BodyPartHandle(rocket_body_handle, 0)]));
 
     // Create the visible rocket
     let mut visible_rocket = window.add_cube(
@@ -129,8 +160,8 @@ fn main() -> color_eyre::Result<()> {
     visible_rocket.set_color(1.0, 0.0, 0.0);
 
     // Create the ground physics object
-    let ground_handle = bodies.insert(RigidBodyDesc::new().gravity_enabled(false).build());
-    let ground_shape = Cuboid::new(Vector3::new(100.0, 1.0, 100.0));
+    let ground_handle = bodies.insert(Ground::new());
+    let ground_shape = Cuboid::new(Vector3::new(10.0, 0.0, 10.0));
     let ground_collider_handle = colliders.insert(
         ColliderDesc::new(ShapeHandle::new(ground_shape)).build(BodyPartHandle(ground_handle, 0)),
     );
@@ -181,9 +212,22 @@ fn main() -> color_eyre::Result<()> {
         let rocket_body = bodies
             .rigid_body_mut(rocket_body_handle)
             .ok_or_else(|| {
-                eyre!("Unable to get the rocket from the bodies list... This should never happen")
+                eyre!("Unable to get the rocket from the bodies set... This should never happen")
             })
-            .suggestion("Make sure you are not removing the rocket body from the bodies list")?;
+            .suggestion("Make sure you are not removing the rocket body from the bodies set")?;
+
+        let motor_force_generator = force_generators.get(motor_force_generator_handle)
+        .ok_or_else(|| eyre!("Unable to get the motor force generator from the force generators set... This should never happen"))
+
+            .suggestion("Make sure you are not removing the motor force generator from the force generators set")?;
+
+        // let rocket_collider = colliders.get_mut(rocket_collider_handle)
+        //     .ok_or_else(|| eyre!("Unable to get the rocker collider from the colliders set... This should never happen"))
+        //     .suggestion("Make sure you are not removing the rocket collider from the colliders set")?;
+
+        // let ground_collider = colliders.get_mut(ground_collider_handle)
+        //     .ok_or_else(|| eyre!("Unable to get the ground collider from the colliders set... This should never happen"))
+        //     .suggestion("Make sure you are not removing the ground collider from the colliders set")?;
 
         {
             let rocket_position = rocket_body.position().translation.vector;
@@ -217,6 +261,17 @@ fn main() -> color_eyre::Result<()> {
                 let rocket_velocity: Vector3<f32> = nalgebra::convert(rocket_velocity);
                 let rocket_acceleration: Vector3<f32> = nalgebra::convert(rocket_acceleration);
 
+                // Check if the rocket has landed
+                let landed = geometrical_world
+                    .contact_pair(
+                        &colliders,
+                        rocket_collider_handle,
+                        ground_collider_handle,
+                        false,
+                    )
+                    .is_some();
+
+                // Display the rocket
                 visible_rocket.set_local_translation(Translation3::from(rocket_position));
 
                 camera.set_at(Point3::from(rocket_position));
@@ -241,10 +296,11 @@ fn main() -> color_eyre::Result<()> {
                         x:
                         y:
                         z:
-                    Net Force
+                    Net Linear Force
                         x:
                         y:
                         z:
+                    Grounded?:
                 "}),
                     &Point2::new(0.0, 0.0),
                     50.0,
@@ -272,6 +328,7 @@ fn main() -> color_eyre::Result<()> {
                         {:+.5} N
                         {:+.5} N
                         {:+.5} N
+                            {}
                     "},
                         elapsed_time,
                         rocket_position[0],
@@ -285,7 +342,8 @@ fn main() -> color_eyre::Result<()> {
                         rocket_acceleration[2],
                         rocket_net_force[0],
                         rocket_net_force[1],
-                        rocket_net_force[2]
+                        rocket_net_force[2],
+                        landed
                     ),
                     &Point2::new(150.0, 0.0),
                     50.0,
@@ -293,6 +351,18 @@ fn main() -> color_eyre::Result<()> {
                     &Point3::new(1.0, 1.0, 1.0),
                 )
             }
+
+            let thrust_vector: Vector3<f64> = motor_force_generator
+                .downcast_ref::<RocketMotorForceGenerator<EstesC6>>()
+                .ok_or_else(|| eyre!("The motor force generator was unable to be casted"))
+                .suggestion("Ensure the types are the same")?
+                .thrust_vector();
+
+            window.draw_line(
+                &nalgebra::convert(Point3::from(rocket_position)),
+                &nalgebra::convert(Point3::from(thrust_vector + rocket_position)),
+                &Point3::new(0.0, 0.0, 1.0),
+            )
         }
     }
 
