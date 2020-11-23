@@ -6,10 +6,8 @@ use iced::{
 };
 use log::{info, LevelFilter};
 use plotters::{
-    prelude::LineSeries,
-    prelude::{BitMapBackend, ChartBuilder, IntoDrawingArea},
-    style::BLACK,
-    style::{IntoFont, RED, WHITE},
+    prelude::{BitMapBackend, ChartBuilder, IntoDrawingArea, LineSeries},
+    style::{BLACK, IntoFont, RED, WHITE},
 };
 use plotters_bitmap::bitmap_pixel::BGRXPixel;
 use simplelog::{Config, TermLogger, TerminalMode};
