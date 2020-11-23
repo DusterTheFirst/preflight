@@ -22,41 +22,41 @@ pub struct EstesA8;
 
 // TODO: macro?
 #[derive(Debug, Copy, Clone)]
-pub struct SupportedMotor {
+pub struct RocketMotor {
     pub name: &'static str,
     pub thrust: fn(f64) -> MotorThrust,
     pub min: f64,
     pub max: f64,
 }
 
-impl PartialEq for SupportedMotor {
+impl PartialEq for RocketMotor {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
     }
 }
 
-impl Eq for SupportedMotor {}
+impl Eq for RocketMotor {}
 
-impl Display for SupportedMotor {
+impl Display for RocketMotor {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(self.name)
     }
 }
 
-pub const SUPPORTED_MOTORS: &[SupportedMotor] = &[
-    SupportedMotor {
+pub const SUPPORTED_MOTORS: &[RocketMotor] = &[
+    RocketMotor {
         name: "Estes A8",
         thrust: EstesA8::get,
         min: EstesA8::MIN,
         max: EstesA8::MAX,
     },
-    SupportedMotor {
+    RocketMotor {
         name: "Estes B4",
         thrust: EstesB4::get,
         min: EstesB4::MIN,
         max: EstesB4::MAX,
     },
-    SupportedMotor {
+    RocketMotor {
         name: "Estes C6",
         thrust: EstesC6::get,
         min: EstesC6::MIN,

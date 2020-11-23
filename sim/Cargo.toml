@@ -12,3 +12,4 @@ plotters = { rev = "96d51844ea2febc36dae5f07901db54f10b90c08", git = "https://gi
 log = "0.4.11"
 simplelog = "0.8.0"
 plotters-bitmap = "0.3.0"
+color-eyre = "0.5.7"
