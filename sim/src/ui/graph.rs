@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 use color_eyre::Help;
 use iced::image::Handle as ImageHandle;
 use plotters::{
-    prelude::{ChartBuilder, IntoDrawingArea, LineSeries},
+    prelude::{ChartBuilder, IntoDrawingArea, LineSeries, PointSeries},
     style::{IntoFont, RED, WHITE},
 };
 use plotters_bitmap::{bitmap_pixel::BGRXPixel, BitMapBackend};
@@ -74,8 +74,9 @@ pub fn draw_motor_graph(buf: &mut GraphBuf, motor: RocketMotor) -> color_eyre::R
         .unwrap();
 
     chart
-        .draw_series(LineSeries::new(datapoints, &RED))
-        .unwrap();
+        .draw_series(PointSeries::new(datapoints, 3.0, &RED))
+        .unwrap()
+        .label("H");
 
     Ok(())
 }
