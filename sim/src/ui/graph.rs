@@ -1,17 +1,15 @@
-use std::ops::{Deref, DerefMut};
-
 use color_eyre::Help;
 use iced::image::Handle as ImageHandle;
 use plotters::{
     prelude::{ChartBuilder, IntoDrawingArea, LineSeries, PointSeries},
-    style::{IntoFont, RED, WHITE},
+    style::{Color, IntoFont, RGBAColor, ShapeStyle, RED, WHITE},
 };
 use plotters_bitmap::{bitmap_pixel::BGRXPixel, BitMapBackend};
 
 use crate::simulation::motor::RocketMotor;
 
-const GRAPH_WIDTH: u32 = 512;
-const GRAPH_HEIGHT: u32 = 512;
+const GRAPH_WIDTH: u32 = 1024;
+const GRAPH_HEIGHT: u32 = 1024;
 const BUFFER_SIZE: usize = (GRAPH_HEIGHT * GRAPH_WIDTH * 4) as usize;
 
 type GraphBuf = [u8; BUFFER_SIZE];
@@ -44,12 +42,10 @@ pub fn draw_motor_graph(buf: &mut GraphBuf, motor: RocketMotor) -> color_eyre::R
 
     plot.fill(&WHITE).note("Failed to draw the background")?;
 
-    let low = motor.min.floor();
-    let high = motor.max.ceil();
-
-    let datapoints = ((low as i64)..(high as i64) * 100)
+    let datapoints = (motor.min.floor() as i64..=(motor.max * 100.0).ceil() as i64)
         .map(|i| i as f64 * 0.01)
-        .map(|i| (i, (motor.thrust)(i).thrust));
+        .map(|i| (i, (motor.thrust)(i).thrust))
+        .collect::<Vec<_>>();
 
     // After this point, we should be able to draw construct a chart context
     let mut chart = ChartBuilder::on(&plot)
@@ -59,7 +55,14 @@ pub fn draw_motor_graph(buf: &mut GraphBuf, motor: RocketMotor) -> color_eyre::R
         .x_label_area_size(20)
         .y_label_area_size(40)
         // Finally attach a coordinate on the drawing area and make a chart context
-        .build_cartesian_2d(motor.min..motor.max, 0f64..10f64)
+        .build_cartesian_2d(
+            motor.min..motor.max,
+            0f64..datapoints
+                .iter()
+                .map(|(_x, y)| y.ceil() as i64)
+                .max()
+                .unwrap_or_default() as f64,
+        )
         .unwrap();
 
     // Then we can draw a mesh
@@ -68,13 +71,21 @@ pub fn draw_motor_graph(buf: &mut GraphBuf, motor: RocketMotor) -> color_eyre::R
         // We can customize the maximum number of labels allowed for each axis
         .x_labels(5)
         .y_labels(5)
+        .label_style(("sans-serif", 80).into_font())
         // We can also change the format of the label text
         .y_label_formatter(&|x| format!("{:.3}", x))
         .draw()
         .unwrap();
 
     chart
-        .draw_series(PointSeries::new(datapoints, 3.0, &RED))
+        .draw_series(LineSeries::new(
+            datapoints,
+            ShapeStyle {
+                color: RED.to_rgba(),
+                filled: false,
+                stroke_width: 20,
+            },
+        ))
         .unwrap()
         .label("H");
 

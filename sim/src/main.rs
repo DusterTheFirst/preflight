@@ -1,16 +1,9 @@
-use std::{num::Wrapping, ops::Range};
-
 use iced::{
-    button, image, pick_list, window, Align, Application, Button, Column, Command, Container,
-    Element, Image, Length, PickList, Settings, Text,
+    pick_list, window, Align, Application, Column, Command, Element, Image, Length, PickList,
+    Settings, Text,
 };
-use log::{info, LevelFilter};
-use plotters::{
-    prelude::{BitMapBackend, ChartBuilder, IntoDrawingArea, LineSeries},
-    style::{IntoFont, BLACK, RED, WHITE},
-};
-use plotters_bitmap::bitmap_pixel::BGRXPixel;
-use simplelog::{Config, TermLogger, TerminalMode};
+use log::LevelFilter;
+use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode};
 use simulation::motor::{RocketMotor, SUPPORTED_MOTORS};
 use ui::graph::{draw_motor_graph, GraphBuffer};
 
@@ -62,7 +55,7 @@ impl Application for Counter {
             Message::MotorSelected(motor) => {
                 self.selected_motor = Some(motor);
 
-                draw_motor_graph(self.motor_thrust_curve.pixels_mut(), motor);
+                draw_motor_graph(self.motor_thrust_curve.pixels_mut(), motor).expect("Failed to render the motor graph");
             }
         }
 
@@ -92,8 +85,15 @@ impl Application for Counter {
 }
 
 fn main() -> iced::Result {
-    TermLogger::init(LevelFilter::Trace, Config::default(), TerminalMode::Mixed)
-        .expect("Failed to initialize the logger");
+    CombinedLogger::init(vec![
+        TermLogger::new(
+            LevelFilter::Trace,
+            ConfigBuilder::new().add_filter_allow_str("str").build(),
+            TerminalMode::Mixed,
+        ),
+        TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed),
+    ])
+    .expect("Failed to initialize the logger");
 
     Counter::run(Settings {
         antialiasing: true,
