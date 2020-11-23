@@ -1,7 +1,4 @@
-use iced::{
-    pick_list, window, Align, Application, Column, Command, Element, Image, Length, PickList,
-    Settings, Text,
-};
+use iced::{Align, Application, Column, Command, Element, Image, Length, PickList, Settings, Svg, Text, pick_list, svg, window};
 use log::LevelFilter;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode};
 use simulation::motor::{RocketMotor, SUPPORTED_MOTORS};
@@ -14,7 +11,7 @@ mod ui;
 struct Counter {
     pick_list: pick_list::State<RocketMotor>,
     selected_motor: Option<RocketMotor>,
-    motor_thrust_curve: GraphBuffer,
+    motor_thrust_curve: String,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -35,18 +32,18 @@ impl Application for Counter {
                 Message::MotorSelected,
             ))
             .push(
-                Image::new(self.motor_thrust_curve.as_handle())
+                Svg::new(svg::Handle::from_memory(self.motor_thrust_curve.clone()))
                     .width(Length::Fill)
                     .height(Length::Fill),
             )
-            .push(Text::new(
-                self.motor_thrust_curve
-                    .pixels()
-                    .iter()
-                    .cloned()
-                    .fold(0u64, |a, b| a + b as u64)
-                    .to_string(),
-            ))
+            // .push(Text::new(
+            //     self.motor_thrust_curve
+            //         .pixels()
+            //         .iter()
+            //         .cloned()
+            //         .fold(0u64, |a, b| a + b as u64)
+            //         .to_string(),
+            // ))
             .into()
     }
 
@@ -55,7 +52,8 @@ impl Application for Counter {
             Message::MotorSelected(motor) => {
                 self.selected_motor = Some(motor);
 
-                draw_motor_graph(self.motor_thrust_curve.pixels_mut(), motor).expect("Failed to render the motor graph");
+                draw_motor_graph(&mut self.motor_thrust_curve, motor)
+                    .expect("Failed to render the motor graph");
             }
         }
 
@@ -71,7 +69,7 @@ impl Application for Counter {
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
             Self {
-                motor_thrust_curve: GraphBuffer::new(),
+                motor_thrust_curve: String::new(),
                 pick_list: pick_list::State::default(),
                 selected_motor: None,
             },

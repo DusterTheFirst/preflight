@@ -1,7 +1,7 @@
 use color_eyre::Help;
 use iced::image::Handle as ImageHandle;
 use plotters::{
-    prelude::{ChartBuilder, IntoDrawingArea, LineSeries, PointSeries},
+    prelude::{ChartBuilder, IntoDrawingArea, LineSeries, PointSeries, SVGBackend},
     style::{Color, IntoFont, RGBAColor, ShapeStyle, RED, WHITE},
 };
 use plotters_bitmap::{bitmap_pixel::BGRXPixel, BitMapBackend};
@@ -35,10 +35,8 @@ impl GraphBuffer {
     }
 }
 
-pub fn draw_motor_graph(buf: &mut GraphBuf, motor: RocketMotor) -> color_eyre::Result<()> {
-    let plot = BitMapBackend::<BGRXPixel>::with_buffer_and_format(buf, (GRAPH_WIDTH, GRAPH_HEIGHT))
-        .note("Failed to setup plotter for drawing")?
-        .into_drawing_area();
+pub fn draw_motor_graph(buf: &mut String, motor: RocketMotor) -> color_eyre::Result<()> {
+    let plot = SVGBackend::with_string(buf, (GRAPH_WIDTH, GRAPH_HEIGHT)).into_drawing_area();
 
     plot.fill(&WHITE).note("Failed to draw the background")?;
 
