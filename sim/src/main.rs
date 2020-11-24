@@ -1,17 +1,19 @@
-use iced::{Align, Application, Column, Command, Element, Image, Length, PickList, Settings, Svg, Text, pick_list, svg, window};
+use iced::{
+    pick_list, svg, window, Align, Application, Column, Command, Element, Image, Length, PickList,
+    Settings, Svg, Text,
+};
 use log::LevelFilter;
 use simplelog::{CombinedLogger, Config, ConfigBuilder, TermLogger, TerminalMode};
 use simulation::motor::{RocketMotor, SUPPORTED_MOTORS};
-use ui::graph::{draw_motor_graph, GraphBuffer};
+use ui::graph::Graph;
 
 mod simulation;
 mod ui;
 
-#[derive(Debug)]
 struct Counter {
     pick_list: pick_list::State<RocketMotor>,
     selected_motor: Option<RocketMotor>,
-    motor_thrust_curve: String,
+    motor_thrust_curve: Graph,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -32,7 +34,7 @@ impl Application for Counter {
                 Message::MotorSelected,
             ))
             .push(
-                Svg::new(svg::Handle::from_memory(self.motor_thrust_curve.clone()))
+                Image::new(self.motor_thrust_curve.as_handle())
                     .width(Length::Fill)
                     .height(Length::Fill),
             )
@@ -52,7 +54,8 @@ impl Application for Counter {
             Message::MotorSelected(motor) => {
                 self.selected_motor = Some(motor);
 
-                draw_motor_graph(&mut self.motor_thrust_curve, motor)
+                self.motor_thrust_curve
+                    .draw(motor)
                     .expect("Failed to render the motor graph");
             }
         }
@@ -69,7 +72,7 @@ impl Application for Counter {
     fn new(_flags: Self::Flags) -> (Self, iced::Command<Self::Message>) {
         (
             Self {
-                motor_thrust_curve: String::new(),
+                motor_thrust_curve: Graph::new(),
                 pick_list: pick_list::State::default(),
                 selected_motor: None,
             },
@@ -86,7 +89,7 @@ fn main() -> iced::Result {
     CombinedLogger::init(vec![
         TermLogger::new(
             LevelFilter::Trace,
-            ConfigBuilder::new().add_filter_allow_str("str").build(),
+            ConfigBuilder::new().add_filter_allow_str("sim").build(),
             TerminalMode::Mixed,
         ),
         TermLogger::new(LevelFilter::Warn, Config::default(), TerminalMode::Mixed),
