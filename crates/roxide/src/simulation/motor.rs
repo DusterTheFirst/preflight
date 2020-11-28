@@ -9,15 +9,15 @@ pub struct MotorThrust {
 }
 
 #[derive(InterpolatedDataTable)]
-#[table(file = "../motors/Estes_C6.csv", st = MotorThrust)]
+#[table(file = "../../motors/Estes_C6.csv", st = MotorThrust)]
 pub struct EstesC6;
 
 #[derive(InterpolatedDataTable)]
-#[table(file = "../motors/Estes_B4.csv", st = MotorThrust)]
+#[table(file = "../../motors/Estes_B4.csv", st = MotorThrust)]
 pub struct EstesB4;
 
 #[derive(InterpolatedDataTable)]
-#[table(file = "../motors/Estes_A8.csv", st = MotorThrust)]
+#[table(file = "../../motors/Estes_A8.csv", st = MotorThrust)]
 pub struct EstesA8;
 
 // TODO: macro?
