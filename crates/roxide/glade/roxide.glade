@@ -26,7 +26,7 @@ along with ROxide Rocket Simulatior.  If not, see <http://www.gnu.org/licenses/>
   <!-- interface-description 3d SITL/HITL Model Rocket Simulator -->
   <object class="GtkAdjustment" id="freq_adjustment">
     <property name="lower">60</property>
-    <property name="upper">10000</property>
+    <property name="upper">1000</property>
     <property name="value">60</property>
     <property name="step-increment">0.5</property>
     <property name="page-increment">1</property>
@@ -39,16 +39,37 @@ along with ROxide Rocket Simulatior.  If not, see <http://www.gnu.org/licenses/>
     <property name="type-hint">popup-menu</property>
     <property name="gravity">center</property>
     <child>
-      <!-- n-columns=2 n-rows=2 -->
-      <object class="GtkGrid">
+      <object class="GtkBox">
         <property name="visible">True</property>
         <property name="can-focus">False</property>
-        <property name="margin-start">5</property>
-        <property name="margin-end">5</property>
-        <property name="margin-top">5</property>
-        <property name="margin-bottom">5</property>
-        <property name="row-spacing">5</property>
-        <property name="column-spacing">5</property>
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="GtkToolbar">
+            <property name="visible">True</property>
+            <property name="can-focus">False</property>
+            <property name="toolbar-style">both-horiz</property>
+            <child>
+              <object class="GtkToggleToolButton" id="show_all_motors_button">
+                <property name="visible">True</property>
+                <property name="can-focus">False</property>
+                <property name="tooltip-text" translatable="yes">Show all of the motor options on the graph</property>
+                <property name="is-important">True</property>
+                <property name="label" translatable="yes">Show All Motors</property>
+                <property name="use-underline">True</property>
+                <property name="icon-name">edit-select-all</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
         <child>
           <object class="GtkDrawingArea" id="graph_drawing_area">
             <property name="width-request">512</property>
@@ -59,126 +80,20 @@ along with ROxide Rocket Simulatior.  If not, see <http://www.gnu.org/licenses/>
             <property name="vexpand">True</property>
           </object>
           <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">0</property>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">2</property>
           </packing>
-        </child>
-        <child>
-          <object class="GtkButtonBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="orientation">vertical</property>
-            <property name="layout-style">start</property>
-            <child>
-              <object class="GtkButton">
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="icon-name">zoom-in</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">0</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton">
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="icon-name">zoom-out</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton">
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="receives-default">True</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="visible">True</property>
-                    <property name="can-focus">False</property>
-                    <property name="icon-name">zoom-original</property>
-                  </object>
-                </child>
-              </object>
-              <packing>
-                <property name="expand">True</property>
-                <property name="fill">True</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </object>
-          <packing>
-            <property name="left-attach">0</property>
-            <property name="top-attach">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkButtonBox">
-            <property name="visible">True</property>
-            <property name="can-focus">False</property>
-            <property name="layout-style">center</property>
-            <child>
-              <placeholder/>
-            </child>
-            <child>
-              <object class="GtkToggleButton">
-                <property name="label" translatable="yes">Show All Motors</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can-focus">True</property>
-                <property name="focus-on-click">False</property>
-                <property name="receives-default">True</property>
-              </object>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">True</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <placeholder/>
-            </child>
-          </object>
-          <packing>
-            <property name="left-attach">1</property>
-            <property name="top-attach">1</property>
-          </packing>
-        </child>
-        <child>
-          <placeholder/>
         </child>
       </object>
     </child>
   </object>
   <object class="GtkAdjustment" id="timestep_adjustment">
-    <property name="lower">0.0001</property>
-    <property name="upper">0.016666</property>
-    <property name="value">0.016666</property>
-    <property name="step-increment">0.000005</property>
-    <property name="page-increment">0.0001</property>
+    <property name="lower">1</property>
+    <property name="upper">16.666</property>
+    <property name="value">16.666</property>
+    <property name="step-increment">0.005</property>
+    <property name="page-increment">0.1</property>
   </object>
   <object class="GtkApplicationWindow" id="application_window">
     <property name="can-focus">False</property>
@@ -328,7 +243,7 @@ along with ROxide Rocket Simulatior.  If not, see <http://www.gnu.org/licenses/>
             <property name="label-xalign">0</property>
             <property name="shadow-type">none</property>
             <child>
-              <!-- n-columns=2 n-rows=3 -->
+              <!-- n-columns=3 n-rows=3 -->
               <object class="GtkGrid">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
@@ -348,9 +263,10 @@ along with ROxide Rocket Simulatior.  If not, see <http://www.gnu.org/licenses/>
                   <object class="GtkSpinButton" id="simulation_timestep_input">
                     <property name="visible">True</property>
                     <property name="can-focus">True</property>
+                    <property name="hexpand">False</property>
                     <property name="input-purpose">digits</property>
                     <property name="adjustment">timestep_adjustment</property>
-                    <property name="digits">6</property>
+                    <property name="digits">3</property>
                     <property name="numeric">True</property>
                     <property name="update-policy">if-valid</property>
                   </object>
@@ -411,6 +327,7 @@ along with ROxide Rocket Simulatior.  If not, see <http://www.gnu.org/licenses/>
                   <packing>
                     <property name="left-attach">1</property>
                     <property name="top-attach">2</property>
+                    <property name="width">2</property>
                   </packing>
                 </child>
                 <child>
@@ -433,6 +350,30 @@ along with ROxide Rocket Simulatior.  If not, see <http://www.gnu.org/licenses/>
                   </object>
                   <packing>
                     <property name="left-attach">0</property>
+                    <property name="top-attach">1</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">millis</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
+                    <property name="top-attach">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel">
+                    <property name="visible">True</property>
+                    <property name="can-focus">False</property>
+                    <property name="halign">end</property>
+                    <property name="label" translatable="yes">Hz</property>
+                  </object>
+                  <packing>
+                    <property name="left-attach">2</property>
                     <property name="top-attach">1</property>
                   </packing>
                 </child>
