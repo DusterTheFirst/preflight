@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 gtk = { version = "0.9", features = ["v3_24"] }
 cairo-rs = "0.9"
-plotters = "0.3"
+plotters = { git = "https://github.com/38/plotters", rev = "96d51844ea2febc36dae5f07901db54f10b90c08" }
 plotters-cairo = "0.3"
 color-eyre = "0.5.8"
 timescale = { path = "../timescale" }

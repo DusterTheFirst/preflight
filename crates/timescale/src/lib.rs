@@ -39,7 +39,7 @@ pub trait InterpolatedDataTable: Send + Sync + 'static {
     /// The datapoint type
     type Datapoint: Lerp<Self::Time>;
     /// The scalar used for timing, Only f64 or f32 are supported
-    type Time;
+    type Time: Copy;
 
     /// The minimum time value that is in the dataset
     const MIN: Self::Time;

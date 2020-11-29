@@ -2163,7 +2163,7 @@ version = "0.6.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f923fb806c46266c02ab4a5b239735c144bdeda724a50ed058e5226f594cde3"
 dependencies = [
- "ttf-parser",
+ "ttf-parser 0.6.2",
 ]
 
 [[package]]
@@ -2343,18 +2343,18 @@ checksum = "3831453b3449ceb48b6d9c7ad7c96d5ea673e9b470a1dc578c2ce6521230884c"
 [[package]]
 name = "plotters"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "45ca0ae5f169d0917a7c7f5a9c1a3d3d9598f18f529dd2b8373ed988efea307a"
+source = "git+https://github.com/38/plotters?rev=96d51844ea2febc36dae5f07901db54f10b90c08#96d51844ea2febc36dae5f07901db54f10b90c08"
 dependencies = [
  "chrono",
  "font-kit",
  "image 0.23.12",
  "lazy_static",
  "num-traits",
+ "pathfinder_geometry",
  "plotters-backend",
  "plotters-bitmap",
  "plotters-svg",
- "rusttype 0.8.3",
+ "ttf-parser 0.8.3",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -3298,6 +3298,12 @@ name = "ttf-parser"
 version = "0.6.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e5d7cd7ab3e47dda6e56542f4bbf3824c15234958c6e1bd6aaa347e93499fdc"
+
+[[package]]
+name = "ttf-parser"
+version = "0.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7622061403fd00f0820df288e5a580e87d3ce15a1c4313c59fd1ffb77129903f"
 
 [[package]]
 name = "typenum"
