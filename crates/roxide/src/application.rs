@@ -1,5 +1,7 @@
 use std::{
+    env, fs, process,
     rc::Rc,
+    sync::Once,
     sync::{Arc, RwLock},
 };
 
@@ -8,11 +10,27 @@ use gtk::{
     ApplicationWindow, Builder, Button, ButtonExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt,
     Inhibit, SpinButton, SpinButtonExt, SpinButtonSignals, WidgetExt,
 };
+use serde::{Deserialize, Serialize};
 
 use crate::{get_object, graph::GraphDisplay, simulation::motor::SUPPORTED_MOTORS};
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct ApplicationState {
     pub selected_motor: RwLock<Option<usize>>,
+    // pub csv_log_folder: Option<PathBuf>, TODO:
+    // pub csv_filename_override: Option<PathBuf>, TODO:
+}
+
+impl ApplicationState {
+    fn new() -> color_eyre::Result<Self> {
+        Ok(ApplicationState {
+            selected_motor: RwLock::new(None),
+            // csv_filename_override: None,
+            // csv_log_folder: Some(
+            // env::current_dir().note("Failed to retrieve current working directory")?,
+            // ),
+        })
+    }
 }
 
 pub struct Application {
@@ -32,11 +50,9 @@ pub struct Application {
 
 impl Application {
     pub fn new(builder: Builder) -> color_eyre::Result<Self> {
-        let state = Arc::new(ApplicationState {
-            selected_motor: RwLock::new(None),
-        });
+        let state = Arc::new(dbg!(Self::load_state()?));
 
-        Ok(Self {
+        Self {
             // Widgets
             application_window: get_object!(builder["application_window"]),
             simulation_frequency_input: get_object!(builder["simulation_timestep_input"]),
@@ -51,14 +67,103 @@ impl Application {
             // State
             state,
         }
-        .setup())
+        .load_state_into_application()?
+        .setup_handlers()
     }
 
-    pub fn setup(self) -> Self {
-        self.application_window.connect_delete_event(|_, _| {
-            gtk::main_quit();
+    fn save_state(state: &Arc<ApplicationState>) -> color_eyre::Result<()> {
+        if let Some(mut cache_file) = dirs::cache_dir() {
+            cache_file.push(format!("com.dusterthefirst.{}.ron", env!("CARGO_PKG_NAME")));
 
-            Inhibit(false)
+            fs::create_dir_all(&cache_file.parent().unwrap())
+                .with_note(|| format!("Failed to create cache file: {:?}", cache_file))?;
+
+            // Save the application state
+            fs::write(
+                &cache_file,
+                ron::to_string(state.as_ref()).note("Failed to serialize the state")?,
+            )
+            .with_note(|| format!("Failed to write to cache file: {:?}", cache_file))?;
+        } else {
+            eprint!("User has no cache directory, discarding application state");
+        }
+
+        Ok(())
+    }
+
+    fn load_state() -> color_eyre::Result<ApplicationState> {
+        if let Some(mut cache_file) = dirs::cache_dir() {
+            cache_file.push(format!("com.dusterthefirst.{}.ron", env!("CARGO_PKG_NAME")));
+
+            if cache_file.exists() {
+                // Load the application state
+                return ron::from_str(
+                    &fs::read_to_string(&cache_file).with_note(|| {
+                        format!("Failed to read from cache file: {:?}", cache_file)
+                    })?,
+                )
+                .note("Failed to deserialize the state");
+            } else {
+                eprintln!("Cache file does not exist, not attempting to load previous state");
+            }
+        } else {
+            eprintln!(
+                "User has no cache directory, not attempting to load previous application state"
+            );
+        }
+
+        ApplicationState::new()
+    }
+
+    fn load_state_into_application(self) -> color_eyre::Result<Self> {
+        // Load motors into the motor selector
+        {
+            self.motor_selector.append(Some("-1"), "None");
+
+            self.motor_selector.set_active_id(Some("-1"));
+
+            for (id, motor) in SUPPORTED_MOTORS.iter().enumerate() {
+                self.motor_selector
+                    .append(Some(&id.to_string()), motor.name)
+            }
+        }
+
+        // Select the motor
+        if let Some(id) = *self.state.selected_motor.read().unwrap() {
+            self.motor_selector
+                .set_active_id(Some(id.to_string().as_str()));
+            self.motor_graph_button.set_sensitive(true);
+        }
+
+        Ok(self)
+    }
+
+    fn setup_handlers(self) -> color_eyre::Result<Self> {
+        ctrlc::set_handler(|| {
+            static WARNING_MESSAGE: Once = Once::new();
+
+            if WARNING_MESSAGE.is_completed() {
+                eprintln!("Terminating");
+
+                process::exit(1);
+            }
+
+            WARNING_MESSAGE.call_once(|| {
+                eprintln!("\nThis is a UI application, please use the x button to safely close the program");
+                eprintln!("Press Ctrl-C again to terminate");
+            });
+        }).note("Failed to set the Ctrl-C handler")?;
+
+        self.application_window.connect_delete_event({
+            let state = self.state.clone();
+
+            move |_, _| {
+                gtk::main_quit();
+
+                Self::save_state(&state).unwrap();
+
+                Inhibit(false)
+            }
         });
 
         // Enforce the frequency as 1/timestep
@@ -115,16 +220,8 @@ impl Application {
                 }
             }
         });
-        self.motor_selector.append(Some("-1"), "None");
 
-        self.motor_selector.set_active_id(Some("-1"));
-
-        for (id, motor) in SUPPORTED_MOTORS.iter().enumerate() {
-            self.motor_selector
-                .append(Some(&id.to_string()), motor.name)
-        }
-
-        self
+        Ok(self)
     }
 
     pub fn show(&self) {
