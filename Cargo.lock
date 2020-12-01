@@ -2682,6 +2682,7 @@ dependencies = [
  "ctrlc",
  "dirs 3.0.1",
  "gtk",
+ "lazy_static",
  "plotters",
  "plotters-cairo",
  "ron",

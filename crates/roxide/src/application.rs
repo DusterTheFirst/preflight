@@ -1,8 +1,8 @@
 use std::{
     env, fs, process,
     rc::Rc,
-    sync::Once,
-    sync::{Arc, RwLock},
+    sync::atomic::AtomicBool,
+    sync::{atomic::Ordering, Arc, Once, RwLock},
 };
 
 use color_eyre::Help;
@@ -10,27 +10,37 @@ use gtk::{
     ApplicationWindow, Builder, Button, ButtonExt, ComboBoxExt, ComboBoxText, ComboBoxTextExt,
     Inhibit, SpinButton, SpinButtonExt, SpinButtonSignals, WidgetExt,
 };
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
 
-use crate::{get_object, graph::GraphDisplay, simulation::motor::SUPPORTED_MOTORS};
+use crate::{
+    get_object, graph::GraphDisplay, simulation::motor::SUPPORTED_MOTORS, util::AtomicF64,
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApplicationState {
     pub selected_motor: RwLock<Option<usize>>,
+    pub frequency: AtomicF64,
     // pub csv_log_folder: Option<PathBuf>, TODO:
     // pub csv_filename_override: Option<PathBuf>, TODO:
 }
 
 impl ApplicationState {
-    fn new() -> color_eyre::Result<Self> {
-        Ok(ApplicationState {
+    fn new() -> Self {
+        ApplicationState {
             selected_motor: RwLock::new(None),
+            frequency: AtomicF64::new(60.0)
             // csv_filename_override: None,
             // csv_log_folder: Some(
             // env::current_dir().note("Failed to retrieve current working directory")?,
             // ),
-        })
+        }
     }
+}
+
+lazy_static! {
+    /// A static bool to suppress double updates from the timestep/frequency interconnection
+    static ref SUPPRESS_UPDATE: AtomicBool = AtomicBool::new(false);
 }
 
 pub struct Application {
@@ -50,13 +60,13 @@ pub struct Application {
 
 impl Application {
     pub fn new(builder: Builder) -> color_eyre::Result<Self> {
-        let state = Arc::new(dbg!(Self::load_state()?));
+        let state = Arc::new(dbg!(Self::load_state()));
 
         Self {
             // Widgets
             application_window: get_object!(builder["application_window"]),
-            simulation_frequency_input: get_object!(builder["simulation_timestep_input"]),
-            simulation_timestep_input: get_object!(builder["simulation_frequency_input"]),
+            simulation_frequency_input: get_object!(builder["simulation_frequency_input"]),
+            simulation_timestep_input: get_object!(builder["simulation_timestep_input"]),
             motor_graph_button: get_object!(builder["motor_graph_button"]),
             motor_selector: get_object!(builder["motor_selector"]),
 
@@ -91,18 +101,20 @@ impl Application {
         Ok(())
     }
 
-    fn load_state() -> color_eyre::Result<ApplicationState> {
+    fn load_state() -> ApplicationState {
         if let Some(mut cache_file) = dirs::cache_dir() {
             cache_file.push(format!("com.dusterthefirst.{}.ron", env!("CARGO_PKG_NAME")));
 
             if cache_file.exists() {
                 // Load the application state
-                return ron::from_str(
-                    &fs::read_to_string(&cache_file).with_note(|| {
-                        format!("Failed to read from cache file: {:?}", cache_file)
-                    })?,
-                )
-                .note("Failed to deserialize the state");
+                if let Ok(Ok(state)) = fs::read_to_string(&cache_file)
+                    .with_note(|| format!("Failed to read from cache file: {:?}", cache_file))
+                    .map(|x| ron::from_str(&x))
+                {
+                    return state;
+                } else {
+                    eprintln!("Failed to load in the state, falling back to default")
+                }
             } else {
                 eprintln!("Cache file does not exist, not attempting to load previous state");
             }
@@ -134,6 +146,12 @@ impl Application {
                 .set_active_id(Some(id.to_string().as_str()));
             self.motor_graph_button.set_sensitive(true);
         }
+
+        // Load the timestamp and frequency into their fields
+        let freq = self.state.frequency.load(Ordering::SeqCst);
+        self.simulation_timestep_input
+            .set_value((1.0 / freq) * 1000.0); // Timestep is in milliseconds
+        self.simulation_frequency_input.set_value(freq);
 
         Ok(self)
     }
@@ -169,18 +187,45 @@ impl Application {
         // Enforce the frequency as 1/timestep
         self.simulation_timestep_input.connect_value_changed({
             let freq_input = self.simulation_frequency_input.clone();
+            let state = self.state.clone();
 
             move |simulation_timestep_input| {
-                freq_input.set_value(1.0 / (simulation_timestep_input.get_value() / 1000.0))
+                // Check if the update is suppressed.
+                // This would be set if the update was caused by the frequency input adjusting the timestep to match
+                if !SUPPRESS_UPDATE.load(Ordering::SeqCst) {
+                    // Get the timestep and calculate the equivalent frequency
+                    let timestep = simulation_timestep_input.get_value() / 1000.0;
+                    let freq = 1.0 / timestep;
+
+                    // Store the frequency in the application's state
+                    state.frequency.store(freq, Ordering::SeqCst);
+
+                    // Acquire a "lock" by suppressing the frequency handler and then update the displayed frequency
+                    // discarding the lock afterwords
+                    SUPPRESS_UPDATE.store(true, Ordering::SeqCst);
+                    freq_input.set_value(freq);
+                    SUPPRESS_UPDATE.store(false, Ordering::SeqCst);
+                }
             }
         });
 
         // Enforce the timestep as 1/frequency
         self.simulation_frequency_input.connect_value_changed({
             let timestep_input = self.simulation_timestep_input.clone();
+            let state = self.state.clone();
 
             move |simulation_frequency_input| {
-                timestep_input.set_value((1.0 / simulation_frequency_input.get_value()) * 1000.0)
+                // See timestep handler for explanation
+                if !SUPPRESS_UPDATE.load(Ordering::SeqCst) {
+                    let freq = simulation_frequency_input.get_value();
+                    let timestep = (1.0 / freq) * 1000.0;
+
+                    state.frequency.store(freq, Ordering::SeqCst);
+
+                    SUPPRESS_UPDATE.store(true, Ordering::SeqCst);
+                    timestep_input.set_value(timestep);
+                    SUPPRESS_UPDATE.store(false, Ordering::SeqCst);
+                }
             }
         });
 
