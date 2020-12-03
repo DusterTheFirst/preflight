@@ -21,7 +21,7 @@ dialoguer = "0.7.1"
 color-eyre = "0.5.8"
 
 [workspace]
-members = ["crates/timescale", "crates/timescale/macros", "crates/roxide"]
+members = ["crates/timescale", "crates/timescale/macros", "crates/fly"]
 
 [profile.release]
 lto = "thin"
