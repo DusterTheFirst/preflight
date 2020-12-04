@@ -9,8 +9,5 @@ termcolor = "1.1"
 timescale = { path = "../timescale" }
 cargo_metadata = "0.12"
 thiserror = "1.0"
-color-eyre = "0.5.10"
 structopt = "0.3"
-
-[profile.dev.package.backtrace]
-opt-level = 3
+dlopen = "0.1"

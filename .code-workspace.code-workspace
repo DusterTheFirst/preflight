@@ -15,7 +15,7 @@
 			"PATH": "${env:PATH}:${workspaceFolder:sim}/target/debug"
 		},
 		"terminal.integrated.env.windows": {
-			"PATH": "${env:PATH}:${workspaceFolder:sim}/target/debug"
+			"PATH": "${env:PATH}:${workspaceFolder:sim}\\target\\debug"
 		},
 		"terminal.integrated.env.osx": {
 			"PATH": "${env:PATH}:${workspaceFolder:sim}/target/debug"

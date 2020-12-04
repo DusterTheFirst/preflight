@@ -14,14 +14,28 @@ impl Shell {
         }
     }
 
-    pub fn status(&mut self, status: &str, message: &str) -> io::Result<()> {
-        self.stderr.reset()?;
+    pub fn status<S, M>(&mut self, status: S, message: M) -> io::Result<()>
+    where
+        S: AsRef<str>,
+        M: AsRef<str>,
+    {
         self.stderr
             .set_color(ColorSpec::new().set_fg(Some(Color::Green)).set_bold(true))?;
-        write!(self.stderr, "{:>12}", status)?;
-        self.stderr.reset()?;
-        writeln!(self.stderr, " {}", message)?;
+        write!(self.stderr, "{:>12}", status.as_ref())?;
 
-        Ok(())
+        self.stderr.reset()?;
+        writeln!(self.stderr, " {}", message.as_ref())
+    }
+
+    pub fn error<M>(&mut self, message: M) -> io::Result<()>
+    where
+        M: AsRef<str>,
+    {
+        self.stderr
+            .set_color(ColorSpec::new().set_fg(Some(Color::Red)).set_bold(true))?;
+        write!(self.stderr, "error")?;
+
+        self.stderr.reset()?;
+        writeln!(self.stderr, ": {}", message.as_ref().trim_end())
     }
 }
