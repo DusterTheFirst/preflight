@@ -1,0 +1,24 @@
+{
+	"folders": [
+		{
+			"path": ".",
+		},
+		{
+			"path": "./crates/timescale",
+		},
+		{
+			"path": "./crates/fly"
+		}
+	],
+	"settings": {
+		"terminal.integrated.env.linux": {
+			"PATH": "${env:PATH}:${workspaceFolder:sim}/target/debug"
+		},
+		"terminal.integrated.env.windows": {
+			"PATH": "${env:PATH}:${workspaceFolder:sim}/target/debug"
+		},
+		"terminal.integrated.env.osx": {
+			"PATH": "${env:PATH}:${workspaceFolder:sim}/target/debug"
+		}
+	}
+}

@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 chrono = "0.4.19"
-csv = "1.1.4"
+csv = "1.1"
 ctrlc = "3.1.7"
 kiss3d = { version = "0.28.0", features = ["conrod"] }
 log = "0.4.11"
@@ -18,10 +18,16 @@ simplelog = "0.8.0"
 timescale = { path = "./crates/timescale" }
 indoc = "1.0.3"
 dialoguer = "0.7.1"
-color-eyre = "0.5.8"
+color-eyre = "0.5"
 
 [workspace]
-members = ["crates/timescale", "crates/timescale/macros", "crates/fly"]
+members = [
+    "crates/timescale",
+    "crates/timescale/macros",
+    "crates/fly",
+    "crates/fly/example",
+    # "crates/roxide",
+]
 
 [profile.release]
 lto = "thin"
