@@ -1,0 +1,13 @@
+error: cannot negate the `Avionics` implementation
+ --> $DIR/fail-invalid-impl.rs:6:6
+  |
+6 | impl !Avionics for Controller {
+  |      ^
+
+warning: unused imports: `Avionics`, `Control`, `Sensors`
+ --> $DIR/fail-invalid-impl.rs:1:22
+  |
+1 | use preflight_impl::{Avionics, Control, Sensors, avionics_harness};
+  |                      ^^^^^^^^  ^^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default

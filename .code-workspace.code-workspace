@@ -7,7 +7,7 @@
 			"path": "./crates/timescale",
 		},
 		{
-			"path": "./crates/fly"
+			"path": "./crates/preflight"
 		}
 	],
 	"settings": {

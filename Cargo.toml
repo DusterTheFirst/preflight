@@ -24,8 +24,10 @@ color-eyre = "0.5"
 members = [
     "crates/timescale",
     "crates/timescale/macros",
-    "crates/fly",
-    "crates/fly/example",
+    "crates/preflight",
+    "crates/preflight/example",
+    "crates/preflight/macros",
+    "crates/preflight/impl",
     # "crates/roxide",
 ]
 

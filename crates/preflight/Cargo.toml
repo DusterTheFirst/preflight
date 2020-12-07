@@ -1,5 +1,5 @@
 [package]
-name = "fly"
+name = "preflight"
 version = "0.1.0"
 authors = ["Zachary Kohnen <14093962+DusterTheFirst@users.noreply.github.com>"]
 edition = "2018"
@@ -11,3 +11,5 @@ cargo_metadata = "0.12"
 thiserror = "1.0"
 structopt = "0.3"
 dlopen = "0.1"
+dlopen_derive = "0.1"
+preflight_impl = { path = "./impl" }

@@ -1,14 +1,20 @@
+#[macro_use]
+extern crate dlopen_derive;
+
 use std::{
     env,
     io::{self, BufReader},
+    panic,
     path::PathBuf,
     process::{Command, Stdio},
 };
 
 use cargo_metadata::{Artifact, Message, Metadata, MetadataCommand};
 use dlopen::utils::{PLATFORM_FILE_EXTENSION, PLATFORM_FILE_PREFIX};
+use dlopen::wrapper::{Container, WrapperApi};
 use env::VarError;
-use fly::Shell;
+use preflight::Shell;
+use preflight_impl::{Avionics, Control, Sensors};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -17,6 +23,12 @@ struct Arguments {
     // TODO: more
     #[structopt(long, name = "FILE", parse(from_os_str))]
     pub manifest_path: Option<PathBuf>,
+}
+
+#[derive(WrapperApi)]
+struct Api<'a> {
+    avionics_guide: fn(sensors: Sensors) -> Control,
+    __PREFLIGHT: &'a bool,
 }
 
 fn main() -> io::Result<()> {
@@ -52,9 +64,12 @@ fn main() -> io::Result<()> {
         {
             let mut build_command = Command::new(cargo_exec)
                 .args(&["build", "--message-format=json-render-diagnostics"])
+                .env("__PREFLIGHT", "testing")
                 .stdout(Stdio::piped())
                 .spawn()
                 .unwrap();
+
+            let mut artifact_file = None;
 
             let reader = BufReader::new(build_command.stdout.take().unwrap());
             for message in Message::parse_stream(reader) {
@@ -63,7 +78,7 @@ fn main() -> io::Result<()> {
                         if artifact.package_id == package.id
                             && artifact.target.kind.contains(&"dylib".to_string())
                         {
-                            let artifact_file = artifact.filenames.into_iter().find(|file| {
+                            let new_file = artifact.filenames.into_iter().find(|file| {
                                 file.file_name().map_or(false, |name| {
                                     let name = name.to_string_lossy();
 
@@ -72,7 +87,16 @@ fn main() -> io::Result<()> {
                                 })
                             });
 
-                            dbg!(artifact_file);
+                            match (&mut artifact_file, &new_file) {
+                                (None, Some(_)) => artifact_file = new_file,
+                                (Some(o), Some(n)) => {
+                                    return shell.error(format!(
+                                        "found two ambiguous dylibs: ({:?}, {:?})",
+                                        o, n
+                                    ))
+                                }
+                                _ => (),
+                            }
                         }
                     }
                     _ => (), // Unknown message
@@ -84,8 +108,25 @@ fn main() -> io::Result<()> {
                 .expect("Couldn't get cargo's exit status")
                 .success()
             {
+                if let Some(artifact_file) = artifact_file {
+                    let api: Container<Api> = match unsafe { Container::load(artifact_file) } {
+                        Ok(c) => c,
+                        Err(e) => {
+                            return shell
+                                .error(format!("failed to load built shared library: {}", e));
+                        }
+                    };
+
+                    dbg!(api.__PREFLIGHT);
+                    let result = panic::catch_unwind(|| {
+                        dbg!(api.avionics_guide(Sensors))
+                    });
+                    dbg!(result);
+                } else {
+                    return shell.error("the cargo build did not produce any valid artifacts");
+                }
             } else {
-                return shell.error("cargo failed to build");
+                return shell.error("build failed");
             }
         } else {
             return shell

@@ -801,20 +801,11 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "37ab347416e802de484e4d03c7316c48f1ecb56574dfd4a46a80f173ce1de04d"
 
 [[package]]
-name = "fly"
+name = "fly_example_bare"
 version = "0.1.0"
 dependencies = [
- "cargo_metadata",
- "dlopen",
- "structopt",
- "termcolor",
- "thiserror",
- "timescale",
+ "preflight_impl",
 ]
-
-[[package]]
-name = "fly_example"
-version = "0.1.0"
 
 [[package]]
 name = "fnv"
@@ -931,6 +922,12 @@ dependencies = [
  "log",
  "xml-rs",
 ]
+
+[[package]]
+name = "glob"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
 
 [[package]]
 name = "glow"
@@ -1919,6 +1916,37 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
 
 [[package]]
+name = "preflight"
+version = "0.1.0"
+dependencies = [
+ "cargo_metadata",
+ "dlopen",
+ "dlopen_derive",
+ "preflight_impl",
+ "structopt",
+ "termcolor",
+ "thiserror",
+ "timescale",
+]
+
+[[package]]
+name = "preflight_impl"
+version = "0.1.0"
+dependencies = [
+ "preflight_macros",
+ "trybuild",
+]
+
+[[package]]
+name = "preflight_macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2 1.0.24",
+ "quote 1.0.7",
+ "syn 1.0.50",
+]
+
+[[package]]
 name = "proc-macro-crate"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2761,6 +2789,20 @@ dependencies = [
  "sharded-slab",
  "thread_local",
  "tracing-core",
+]
+
+[[package]]
+name = "trybuild"
+version = "1.0.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b7d30fe369fd650072b352b1a9cb9587669de6b89be3b8225544012c1c45292d"
+dependencies = [
+ "glob",
+ "lazy_static",
+ "serde",
+ "serde_json",
+ "termcolor",
+ "toml",
 ]
 
 [[package]]

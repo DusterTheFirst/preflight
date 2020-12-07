@@ -1,0 +1,13 @@
+error: This macro takes exactly 0 parameters
+ --> $DIR/fail-arguments.rs:5:20
+  |
+5 | #[avionics_harness(arg = "ument")]
+  |                    ^^^
+
+warning: unused imports: `Avionics`, `Control`, `Sensors`
+ --> $DIR/fail-arguments.rs:1:22
+  |
+1 | use preflight_impl::{Avionics, Control, Sensors, avionics_harness};
+  |                      ^^^^^^^^  ^^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
