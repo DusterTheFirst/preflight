@@ -1,6 +1,7 @@
+#![no_std]
+
 use preflight_impl::{avionics_harness, Avionics, Control, Sensors};
 
-#[derive(Default)]
 pub struct Controller {
     ticks: u64,
 }
@@ -11,9 +12,10 @@ impl Controller {
     }
 }
 
-#[avionics_harness(default = "Controller::new")]
+#[avionics_harness(default = "Controller::new", no_panic = false)]
 impl Avionics for Controller {
-    fn guide(&mut self, sensors: Sensors) -> Control {
+    fn guide(&mut self, sensors: &Sensors) -> Option<Control> {
         todo!()
+        // Ok()
     }
 }

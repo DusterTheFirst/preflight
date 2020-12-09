@@ -1,8 +1,8 @@
 error: expected a trait implementation of `Avionics`
- --> $DIR/fail-wrong-impl.rs:8:6
-  |
-8 | impl Cool for Controller {}
-  |      ^^^^
+  --> $DIR/fail-wrong-impl.rs:14:6
+   |
+14 | impl Cool for Controller {}
+   |      ^^^^
 
 warning: unused imports: `Avionics`, `Control`, `Sensors`
  --> $DIR/fail-wrong-impl.rs:1:40

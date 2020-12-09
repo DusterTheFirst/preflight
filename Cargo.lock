@@ -205,6 +205,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "cargo-preflight"
+version = "0.1.0"
+dependencies = [
+ "cargo_metadata",
+ "dlopen",
+ "dlopen_derive",
+ "preflight_impl",
+ "structopt",
+ "termcolor",
+ "thiserror",
+ "timescale",
+]
+
+[[package]]
 name = "cargo_metadata"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1516,6 +1530,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "no-panic"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aded1e40001fe4804213d46edcd02eb44b376b3c02ea985f8c71e1e93f8a09d5"
+dependencies = [
+ "proc-macro2 1.0.24",
+ "quote 1.0.7",
+ "syn 1.0.50",
+]
+
+[[package]]
 name = "nom"
 version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1916,25 +1941,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
 
 [[package]]
-name = "preflight"
-version = "0.1.0"
-dependencies = [
- "cargo_metadata",
- "dlopen",
- "dlopen_derive",
- "preflight_impl",
- "structopt",
- "termcolor",
- "thiserror",
- "timescale",
-]
-
-[[package]]
 name = "preflight_impl"
 version = "0.1.0"
 dependencies = [
+ "no-panic",
  "preflight_macros",
  "trybuild",
+ "uom",
 ]
 
 [[package]]
@@ -2852,6 +2865,15 @@ name = "unindent"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f14ee04d9415b52b3aeab06258a3f07093182b88ba0f9b8d203f211a7a7d41c7"
+
+[[package]]
+name = "uom"
+version = "0.30.0"
+source = "git+https://github.com/iliekturtles/uom?branch=227-unwind-safe#68a57a81ba47052becd77a84f9f12fb0a70db8ee"
+dependencies = [
+ "num-traits",
+ "typenum",
+]
 
 [[package]]
 name = "vec_map"
