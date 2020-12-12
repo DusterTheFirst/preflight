@@ -5,6 +5,8 @@ A tool to test flight systems offline with little friction
 This is an in development prototype, so expect it to be buggy.
 Documentation will come once there is a stable API/ABI
 
+# [Example](example/)
+An example flight system can be found in the [`example/`](example/) directory
 
 # [License](LICENSE.md)
     A tool to test flight systems offline with little friction
