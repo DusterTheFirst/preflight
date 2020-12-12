@@ -1,14 +1,20 @@
 {
 	"folders": [
 		{
-			"path": ".",
+			"path": "preflight"
 		},
 		{
-			"path": "./crates/timescale",
+			"path": "example"
 		},
 		{
-			"path": "./crates/preflight"
-		}
+			"path": "assets"
+		},
+		{
+			"path": "timescale"
+		},
+		{
+			"path": "./_legacy"
+		},
 	],
 	"settings": {
 		"terminal.integrated.env.linux": {

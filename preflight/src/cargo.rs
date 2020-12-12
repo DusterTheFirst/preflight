@@ -7,7 +7,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
-use toml_edit::{value, Array, Document, TomlError};
+use toml_edit::{value, Array, Document};
 
 use crate::args::CargoArguments;
 
