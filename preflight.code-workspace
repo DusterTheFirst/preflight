@@ -1,19 +1,8 @@
 {
 	"folders": [
 		{
-			"path": "preflight"
-		},
-		{
-			"path": "example"
-		},
-		{
-			"path": "assets"
-		},
-		{
-			"path": "timescale"
-		},
-		{
-			"path": "./_legacy"
+			"path": ".",
+			"name": "root"
 		},
 	],
 	"settings": {
