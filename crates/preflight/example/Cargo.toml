@@ -1,11 +1,19 @@
 [package]
-name = "fly_example_bare"
+name = "fly_example"
 version = "0.1.0"
 authors = ["Zachary Kohnen <14093962+DusterTheFirst@users.noreply.github.com>"]
 edition = "2018"
 
 [lib]
-crate-type = ["dylib", "staticlib"]
+crate-type = ["staticlib", "dylib"]
+
+[workspace]
 
 [dependencies]
 preflight_impl = { path = "../impl" }
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"

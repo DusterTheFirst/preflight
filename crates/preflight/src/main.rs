@@ -1,15 +1,12 @@
 use std::{
-    io::{self, BufReader},
-    panic,
-    path::PathBuf,
-    process::{Command, Stdio},
-    unimplemented,
+    io::{self},
+    panic, unimplemented,
 };
 
 use cargo_preflight::{
     api::Api,
-    args::{Arguments, PreflightCheckArguments, PreflightCommand},
-    cargo::{build_artifact, get_metadata},
+    args::{CargoArguments, CargoSpawnedArguments, PreflightCommand},
+    cargo::{build_artifact, get_host_target, get_metadata},
     shell::Shell,
 };
 use dlopen::wrapper::Container;
@@ -22,16 +19,24 @@ use structopt::StructOpt;
 fn main() -> io::Result<()> {
     let mut shell = Shell::new();
 
-    let args: Arguments = Arguments::from_args();
+    let CargoSpawnedArguments::Preflight(args) = CargoSpawnedArguments::from_args();
 
     match args.command {
         PreflightCommand::Check(args) => check(args, &mut shell),
+        PreflightCommand::Test(_) => unimplemented!(),
         PreflightCommand::Simulate(_) => unimplemented!(),
     }
 }
 
-fn check(args: PreflightCheckArguments, shell: &mut Shell) -> io::Result<()> {
-    let metadata = match get_metadata(&args.cargo) {
+fn check(cargo_args: CargoArguments, shell: &mut Shell) -> io::Result<()> {
+    let host_target = match get_host_target() {
+        Ok(t) => t,
+        Err(e) => {
+            return shell.error(format!("{:#}", e));
+        }
+    };
+
+    let metadata = match get_metadata(&cargo_args) {
         Err(e) => match e {
             cargo_metadata::Error::CargoMetadata { stderr } => {
                 return shell.error(stderr.trim_start_matches("error: "))
@@ -42,44 +47,46 @@ fn check(args: PreflightCheckArguments, shell: &mut Shell) -> io::Result<()> {
     };
 
     if let Some(package) = metadata.root_package() {
-        if package
+        let has_dylib_target = package
             .targets
             .iter()
-            .any(|t| t.kind.contains(&"dylib".to_string()))
-        {
-            match build_artifact(&args.cargo.cargo_path, package) {
-                Err(e) => return shell.error(e.to_string()),
-                Ok(None) => {
-                    return shell.error("the cargo build did not produce any valid artifacts");
-                }
-                Ok(Some(artifact_file)) => {
-                    let api: Container<Api> = match unsafe { Container::load(artifact_file) } {
-                        Ok(c) => c,
-                        Err(e) => {
-                            return shell
-                                .error(format!("failed to load built shared library: {}", e));
-                        }
-                    };
+            .any(|t| t.kind.contains(&"dylib".to_string()));
 
-                    if *api.preflight() {
-                        let altitude = Length::new::<meter>(0.0);
-                        let input = Sensors { altitude };
-                        let result = panic::catch_unwind(|| api.avionics_guide(&input));
-                        dbg!(&result);
-                        if result.is_err() {
-                            shell.error(format!(
-                                "the avionics panicked with the input: {:?}",
-                                input
-                            ))?;
-                        }
-                    } else {
-                        return shell.error("the dylib was not setup using the `#[avionics_harness]` macro or is using an out of date dependency to preflight_impl");
+        if has_dylib_target {
+            shell.warning(
+                "the crate probably should not have a library target with a crate_type of 'dylib'",
+            )?;
+            shell.note("this will be added automatically when this command is run. crate_type should be `staticlib` or `cdylib`")?;
+        }
+
+        match build_artifact(&cargo_args, &host_target, package) {
+            Err(e) => return shell.error(format!("{:#}", e)),
+            Ok(None) => {
+                return shell.error("the cargo build did not produce any valid artifacts");
+            }
+            Ok(Some(artifact_file)) => {
+                let api: Container<Api> = match unsafe { Container::load(artifact_file) } {
+                    Ok(c) => c,
+                    Err(e) => {
+                        return shell.error(format!("failed to load built shared library: {}", e));
                     }
+                };
+
+                if *api.preflight() {
+                    let altitude = Length::new::<meter>(0.0);
+                    let input = Sensors { altitude };
+                    let result = api.avionics_guide(&input);
+                    dbg!(&result);
+                // if result.is_err() {
+                //     shell.error(format!(
+                //         "the avionics panicked with the input: {:?}",
+                //         input
+                //     ))?;
+                // }
+                } else {
+                    return shell.error("the dylib was not setup using the `#[avionics_harness]` macro or is using an out of date dependency to preflight_impl");
                 }
             }
-        } else {
-            return shell
-                .error("the crate must have a library target with a crate_type of 'dylib'");
         }
     } else {
         return shell.error("could not find the root package for this workspace");

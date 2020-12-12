@@ -13,7 +13,7 @@ no-panic = "0.1"
 git = "https://github.com/iliekturtles/uom"
 branch = "227-unwind-safe"
 default-features = false
-features = ["autoconvert", "f32", "f64", "si", "std"]
+features = ["autoconvert", "f32", "f64", "si"]
 
 [dev-dependencies]
 trybuild = "1.0"

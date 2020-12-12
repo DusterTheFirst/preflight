@@ -25,9 +25,9 @@ members = [
     "crates/timescale",
     "crates/timescale/macros",
     "crates/preflight",
-    "crates/preflight/example",
     "crates/preflight/macros",
     "crates/preflight/impl",
+    # "crates/preflight/example",
     # "crates/roxide",
 ]
 

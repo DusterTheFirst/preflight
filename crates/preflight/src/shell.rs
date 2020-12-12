@@ -3,14 +3,14 @@ use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 pub struct Shell {
     stderr: StandardStream,
-    stdout: StandardStream,
+    // stdout: StandardStream,
 }
 
 impl Shell {
     pub fn new() -> Self {
         Self {
             stderr: StandardStream::stderr(ColorChoice::Auto),
-            stdout: StandardStream::stdout(ColorChoice::Auto),
+            // stdout: StandardStream::stdout(ColorChoice::Auto),
         }
     }
 
@@ -37,5 +37,32 @@ impl Shell {
 
         self.stderr.reset()?;
         writeln!(self.stderr, ": {}", message.as_ref().trim_end())
+    }
+
+    pub fn warning<M>(&mut self, message: M) -> io::Result<()>
+    where
+        M: AsRef<str>,
+    {
+        self.stderr
+            .set_color(ColorSpec::new().set_fg(Some(Color::Yellow)).set_bold(true))?;
+        write!(self.stderr, "warning")?;
+
+        self.stderr.set_color(ColorSpec::new().set_bold(true))?;
+        writeln!(self.stderr, ": {}", message.as_ref().trim_end())
+    }
+
+    pub fn note<M>(&mut self, message: M) -> io::Result<()>
+    where
+        M: AsRef<str>,
+    {
+        self.stderr
+            .set_color(ColorSpec::new().set_fg(Some(Color::Blue)).set_bold(true))?;
+        write!(self.stderr, "   = ")?;
+
+        self.stderr.set_color(ColorSpec::new().set_bold(true))?;
+        write!(self.stderr, "note:")?;
+
+        self.stderr.reset()?;
+        writeln!(self.stderr, " {}", message.as_ref().trim_end())
     }
 }

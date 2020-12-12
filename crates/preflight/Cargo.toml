@@ -5,11 +5,13 @@ authors = ["Zachary Kohnen <14093962+DusterTheFirst@users.noreply.github.com>"]
 edition = "2018"
 
 [dependencies]
-termcolor = "1.1"
-timescale = { path = "../timescale" }
 cargo_metadata = "0.12"
-thiserror = "1.0"
-structopt = "0.3"
 dlopen = "0.1"
 dlopen_derive = "0.1"
 preflight_impl = { path = "./impl" }
+structopt = "0.3"
+termcolor = "1.1"
+textwrap = "0.13"
+timescale = { path = "../timescale" }
+toml_edit = "0.2"
+anyhow = "1.0"
