@@ -5,12 +5,12 @@ authors = ["Zachary Kohnen <14093962+DusterTheFirst@users.noreply.github.com>"]
 edition = "2018"
 
 [lib]
-crate-type = ["staticlib", "dylib"]
+crate-type = ["staticlib"]
 
 [workspace]
 
 [dependencies]
-preflight_impl = { path = "../impl" }
+preflight_impl = { path = "../preflight/impl" }
 
 [profile.dev]
 panic = "abort"
