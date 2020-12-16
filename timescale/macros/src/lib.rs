@@ -1,6 +1,7 @@
+use darling::FromDeriveInput;
 use derive::{interpolated_data, interpolated_data_table, timescale_derive};
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, ItemStruct};
+use syn::{parse_macro_input, DeriveInput, ItemStruct};
 
 mod derive;
 mod parse;
@@ -8,12 +9,15 @@ mod util;
 
 #[proc_macro_derive(InterpolatedDataTable, attributes(table))]
 pub fn derive_interpolated_data_table(input: TokenStream) -> TokenStream {
-    // Parse the underlying struct
-    let input: ItemStruct = parse_macro_input!(input as ItemStruct);
+    let input = parse_macro_input!(input as DeriveInput);
 
-    interpolated_data_table::derive(input)
-        .unwrap_or_else(|err| err.to_compile_error())
-        .into()
+    match dbg!(FromDeriveInput::from_derive_input(&dbg!(input))) {
+        Err(err) => err.write_errors(),
+        Ok(args) => {
+            interpolated_data_table::derive(args).unwrap_or_else(|err| err.to_compile_error())
+        }
+    }
+    .into()
 }
 
 #[proc_macro_derive(InterpolatedData, attributes(data))]

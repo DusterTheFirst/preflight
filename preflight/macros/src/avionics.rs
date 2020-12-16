@@ -1,16 +1,16 @@
-use std::collections::HashMap;
-
-use darling::FromMeta;
+use darling::{util::Flag, FromMeta};
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
-use syn::{
-    parse::{Parse, ParseStream},
-    parse_macro_input::ParseMacroInput,
-    spanned::Spanned,
-    AttributeArgs, Error, ItemImpl, Lit, Meta, MetaNameValue, NestedMeta, Result,
-};
+use syn::{spanned::Spanned, Error, ItemImpl, Result};
 
 use crate::util::reconstruct;
+
+#[derive(Debug, FromMeta)]
+pub struct AvionicsParameters {
+    default: String,
+    #[darling(default)]
+    panic_handler: Flag,
+}
 
 pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStream> {
     let (implementation, st) = {
@@ -82,85 +82,26 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         }
     };
 
+    let panic_handler = if params.panic_handler.is_some() {
+        Some(quote! {
+            use core::panic::PanicInfo;
+
+            #[panic_handler]
+            fn handle_panic(_: &PanicInfo) -> ! {
+                loop {}
+            }
+        })
+    } else {
+        None
+    };
+
     Ok(quote! {
         #implementation
 
         static mut AVIONICS: #st = #default();
 
         #platform_impl
+
+        #panic_handler
     })
-}
-
-#[derive(Debug, FromMeta)]
-pub struct AvionicsParameters {
-    default: String,
-    panic_handler: bool,
-}
-
-impl Parse for AvionicsParameters {
-    fn parse(input: ParseStream) -> Result<Self> {
-        let attributes = AttributeArgs::parse(input)?;
-
-        let mut parsed = attributes
-            .into_iter()
-            .map(|meta| match meta {
-                NestedMeta::Meta(Meta::NameValue(nv)) => {
-                    let MetaNameValue { lit, path, .. } = nv;
-
-                    Ok((reconstruct(&path.segments), (path, lit)))
-                }
-                NestedMeta::Meta(m) => Err(Error::new(
-                    m.span(),
-                    "expected a name value pair like `a = \"b\"",
-                )),
-                NestedMeta::Lit(l) => Err(Error::new(
-                    l.span(),
-                    "expected a name value pair like `a = \"b\"",
-                )),
-            })
-            .collect::<Result<HashMap<_, _>>>()?;
-
-        let params = AvionicsParameters {
-            default: parsed
-                .remove("default")
-                .ok_or_else(|| Error::new(input.span(), "missing required property `default`"))
-                .and_then(|(_, value)| {
-                    if let Lit::Str(s) = value {
-                        Ok(s.value())
-                    } else {
-                        Err(Error::new(
-                            value.span(),
-                            "parameter `default` expects a string",
-                        ))
-                    }
-                })?,
-            panic_handler: parsed
-                .remove("panic_handler")
-                .map(|(_, value)| {
-                    if let Lit::Bool(b) = value {
-                        Ok(b.value)
-                    } else {
-                        Err(Error::new(
-                            value.span(),
-                            "parameter `panic_handler` expects a boolean",
-                        ))
-                    }
-                })
-                .unwrap_or(Ok(true))?,
-        };
-
-        if !parsed.is_empty() {
-            let unexpected = parsed.keys();
-            Err(Error::new(
-                input.span(),
-                format!(
-                    "unexpected parameter{}: {}",
-                    if unexpected.len() == 1 { "" } else { "s" },
-                    unexpected.cloned().collect::<Vec<String>>().join(", ")
-                ),
-            ))
-        } else {
-            Ok(params)
-        }
-    }
 }

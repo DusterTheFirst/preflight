@@ -1,4 +1,4 @@
-use crate::{Sensors, Control};
+use crate::{Control, Sensors};
 use dlopen::wrapper::WrapperApi;
 
 #[derive(WrapperApi)]

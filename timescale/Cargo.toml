@@ -9,3 +9,6 @@ description = "A crate to work with timescale data and csv files"
 timescale_macros = { path = "./macros" }
 serde = "1.0"
 lerp = { branch = "derive_macro", git = "https://github.com/DusterTheFirst/lerp-rs/", features = ["derive"] }
+
+[dev-dependencies]
+trybuild = "1.0"

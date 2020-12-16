@@ -1,10 +1,8 @@
-error: unexpected parameter(s): arg
-  --> $DIR/fail-arguments.rs:12:1
+error: Unknown field: `arg`
+  --> $DIR/fail-arguments.rs:12:49
    |
 12 | #[avionics_harness(default = "Controller::new", arg = "ument")]
-   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |
-   = note: this error originates in an attribute macro (in Nightly builds, run with -Z macro-backtrace for more info)
+   |                                                 ^^^
 
 warning: unused imports: `Avionics`, `Control`, `Sensors`
  --> $DIR/fail-arguments.rs:1:40

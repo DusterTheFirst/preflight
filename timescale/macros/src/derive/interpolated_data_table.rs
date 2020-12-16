@@ -1,41 +1,24 @@
 use super::interpolated_data::INTERPOLATED_DATA;
-use crate::{
-    derive::interpolated_data::InterpolatedData,
-    parse::interpolated_data_table::InterpolatedDataTableArgs,
-};
+use crate::derive::interpolated_data::InterpolatedData;
 use csv::Reader;
+use darling::FromDeriveInput;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::path::PathBuf;
-use syn::{spanned::Spanned, Error, Fields, Ident, ItemStruct, LitFloat, LitStr, Path};
+use syn::{spanned::Spanned, Error, Ident, LitFloat, LitStr, Path};
 
-pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
-    // Ensure the struct has no fields
-    if Fields::Unit != input.fields {
-        return Err(Error::new(input.span(), "The struct must be a unit struct"));
-    }
-
-    // Parse the attributes
-    let args = InterpolatedDataTableArgs::parse_attributes(input.attrs.as_ref())?;
-
-    // Ensure that both args have values
-    match args {
-        InterpolatedDataTableArgs { file: None, .. } => Err(Error::new(
-            input.ident.span(),
-            "the attribute `#[table(path = ...)]` must be provided with a path to load csv from"
-        )),
-        InterpolatedDataTableArgs { st: None, .. } => Err(Error::new(
-            input.ident.span(),
-            "the attribute `#[table(struct = ...)]` must be provided with the struct to deserialize the csv as"
-        )),
-        InterpolatedDataTableArgs {
-            file: Some(file),
-            st: Some(st),
-        } => Ok(load_csv(file, st, input)?),
-    }
+/// Arguments to the `derive(InterpolatedDataTable)` macro
+#[derive(Debug, FromDeriveInput)]
+#[darling(supports(struct_unit), attributes(table))]
+pub struct InterpolatedDataTableArgs {
+    pub ident: Ident,
+    pub st: Path,
+    pub file: LitStr,
 }
 
-fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStream> {
+pub fn derive(
+    InterpolatedDataTableArgs { file, ident, st }: InterpolatedDataTableArgs,
+) -> syn::Result<TokenStream> {
     // Get the full path to the csv file
     let csv_path = PathBuf::from(format!(
         "{}/{}",
@@ -286,14 +269,12 @@ fn load_csv(file: LitStr, st: Path, input: ItemStruct) -> syn::Result<TokenStrea
         lerps
     };
 
-    let data_table_struct = input.ident;
-
     Ok(quote! {
         const _: () = {
             use timescale::InterpolatedDataPoint;
 
             #[automatically_derived]
-            impl InterpolatedDataTable for #data_table_struct {
+            impl InterpolatedDataTable for #ident {
                 type Datapoint = #st;
                 type Time = #fields_type;
 
