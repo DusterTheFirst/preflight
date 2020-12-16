@@ -1,10 +1,8 @@
 #![no_std]
 
-use uom::si::f64::Length;
-
-pub use no_panic::no_panic;
 pub use preflight_macros::avionics_harness;
 pub use uom;
+pub use uom::si::f64::Length;
 
 #[repr(C)]
 #[cfg_attr(debug_assertions, derive(Debug))]

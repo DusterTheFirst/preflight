@@ -1,10 +1,13 @@
 use std::collections::HashMap;
 
+use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{
-    parse::Parse, parse::ParseStream, spanned::Spanned, Error, Expr, ExprAssign, ExprLit, ExprPath,
-    ImplItem, ItemImpl, Lit, LitStr, Result, Token,
+    parse::{Parse, ParseStream},
+    parse_macro_input::ParseMacroInput,
+    spanned::Spanned,
+    AttributeArgs, Error, ItemImpl, Lit, Meta, MetaNameValue, NestedMeta, Result,
 };
 
 use crate::util::reconstruct;
@@ -12,13 +15,7 @@ use crate::util::reconstruct;
 pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStream> {
     let (implementation, st) = {
         let ItemImpl {
-            attrs,
-            generics,
-            items,
-            self_ty,
-            trait_,
-            unsafety,
-            ..
+            self_ty, trait_, ..
         } = &input;
 
         let (invert, trait_, _) = &trait_
@@ -51,33 +48,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
             ));
         }
 
-        (
-            if params.no_panic {
-                let items = items.into_iter().map(|item| match item {
-                    ImplItem::Method(method) => {
-                        quote! {
-                            #[preflight_impl::no_panic]
-                            #method
-                        }
-                    }
-                    _ => quote! {
-                        item
-                    },
-                });
-
-                quote! {
-                    #(#attrs)*
-                    #unsafety impl< #generics > #trait_ for  #self_ty< #generics > {
-                        #(#items)*
-                    }
-                }
-            } else {
-                quote! {
-                    #input
-                }
-            },
-            self_ty,
-        )
+        (&input, self_ty)
     };
 
     let platform_impl = if let Some("testing") = option_env!("__PREFLIGHT") {
@@ -104,7 +75,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
     };
 
     let default = {
-        let default: TokenStream = params.default.value().parse()?;
+        let default: TokenStream = params.default.parse()?;
 
         quote_spanned! {params.default.span()=>
             #default
@@ -120,74 +91,58 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
     })
 }
 
-#[derive(Debug)]
+#[derive(Debug, FromMeta)]
 pub struct AvionicsParameters {
-    default: LitStr,
-    no_panic: bool,
+    default: String,
+    panic_handler: bool,
 }
 
 impl Parse for AvionicsParameters {
     fn parse(input: ParseStream) -> Result<Self> {
-        let attributes = input.parse_terminated::<_, Token![,]>(ExprAssign::parse)?;
+        let attributes = AttributeArgs::parse(input)?;
 
         let mut parsed = attributes
-            .iter()
-            .map(|expr| {
-                if !expr.attrs.is_empty() {
-                    Err(Error::new(
-                        expr.span(),
-                        "expressions cannot have attributes",
-                    ))
-                } else {
-                    if let Expr::Path(ExprPath { path, attrs, .. }) = expr.left.as_ref() {
-                        if !attrs.is_empty() {
-                            Err(Error::new(
-                                expr.span(),
-                                "expressions cannot have attributes",
-                            ))
-                        } else {
-                            if let Expr::Lit(ExprLit { lit, .. }) = expr.right.as_ref() {
-                                Ok((reconstruct(&path.segments), lit))
-                            } else {
-                                Err(Error::new(
-                                    expr.span(),
-                                    "parameters can only take literals as values",
-                                ))
-                            }
-                        }
-                    } else {
-                        Err(Error::new(
-                            expr.span(),
-                            "left side of the expression must be a path (ex. joe, or jeff:joe)",
-                        ))
-                    }
+            .into_iter()
+            .map(|meta| match meta {
+                NestedMeta::Meta(Meta::NameValue(nv)) => {
+                    let MetaNameValue { lit, path, .. } = nv;
+
+                    Ok((reconstruct(&path.segments), (path, lit)))
                 }
+                NestedMeta::Meta(m) => Err(Error::new(
+                    m.span(),
+                    "expected a name value pair like `a = \"b\"",
+                )),
+                NestedMeta::Lit(l) => Err(Error::new(
+                    l.span(),
+                    "expected a name value pair like `a = \"b\"",
+                )),
             })
             .collect::<Result<HashMap<_, _>>>()?;
 
         let params = AvionicsParameters {
             default: parsed
                 .remove("default")
-                .ok_or_else(|| Error::new(attributes.span(), "missing required property `default`"))
-                .and_then(|lit| {
-                    if let Lit::Str(s) = lit {
-                        Ok(s.clone())
+                .ok_or_else(|| Error::new(input.span(), "missing required property `default`"))
+                .and_then(|(_, value)| {
+                    if let Lit::Str(s) = value {
+                        Ok(s.value())
                     } else {
                         Err(Error::new(
-                            lit.span(),
+                            value.span(),
                             "parameter `default` expects a string",
                         ))
                     }
                 })?,
-            no_panic: parsed
-                .remove("no_panic")
-                .map(|lit| {
-                    if let Lit::Bool(b) = lit {
+            panic_handler: parsed
+                .remove("panic_handler")
+                .map(|(_, value)| {
+                    if let Lit::Bool(b) = value {
                         Ok(b.value)
                     } else {
                         Err(Error::new(
-                            lit.span(),
-                            "parameter `default` expects a boolean",
+                            value.span(),
+                            "parameter `panic_handler` expects a boolean",
                         ))
                     }
                 })
@@ -195,11 +150,13 @@ impl Parse for AvionicsParameters {
         };
 
         if !parsed.is_empty() {
+            let unexpected = parsed.keys();
             Err(Error::new(
                 input.span(),
                 format!(
-                    "unexpected parameter(s): {}",
-                    parsed.keys().cloned().collect::<Vec<String>>().join(", ")
+                    "unexpected parameter{}: {}",
+                    if unexpected.len() == 1 { "" } else { "s" },
+                    unexpected.cloned().collect::<Vec<String>>().join(", ")
                 ),
             ))
         } else {

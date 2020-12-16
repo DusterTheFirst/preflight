@@ -14,17 +14,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "no-panic"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aded1e40001fe4804213d46edcd02eb44b376b3c02ea985f8c71e1e93f8a09d5"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "num-traits"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -37,7 +26,6 @@ dependencies = [
 name = "preflight_impl"
 version = "0.1.0"
 dependencies = [
- "no-panic",
  "preflight_macros",
  "uom",
 ]
@@ -95,7 +83,7 @@ checksum = "f7fe0bb3479651439c9112f72b6c505038574c9fbb575ed1bf3b797fa39dd564"
 [[package]]
 name = "uom"
 version = "0.30.0"
-source = "git+https://github.com/iliekturtles/uom?branch=227-unwind-safe#a94975afa17162cd155d5f72c9545f3ebbf49980"
+source = "git+https://github.com/iliekturtles/uom?rev=5f31ced35975d05ac8ad80688c47efc906ed2962#5f31ced35975d05ac8ad80688c47efc906ed2962"
 dependencies = [
  "num-traits",
  "typenum",

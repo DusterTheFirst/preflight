@@ -139,7 +139,7 @@ dependencies = [
  "ansi_term",
  "atty",
  "bitflags",
- "strsim",
+ "strsim 0.8.0",
  "textwrap 0.11.0",
  "unicode-width",
  "vec_map",
@@ -178,6 +178,41 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2b2466559f260f48ad25fe6317b3c8dac77b5bdb5763ac7d9d6103530663bc90"
 dependencies = [
  "memchr",
+]
+
+[[package]]
+name = "darling"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dbffa8f8e38810422f320ca457a93cf1cd0056dc9c06c556b867558e0d471463"
+dependencies = [
+ "darling_core",
+ "darling_macro",
+]
+
+[[package]]
+name = "darling_core"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "06e172685d94b7b83800e3256a63261537b9d6129e10f21c8e13ddf9dba8c64d"
+dependencies = [
+ "fnv",
+ "ident_case",
+ "proc-macro2 1.0.24",
+ "quote 1.0.7",
+ "strsim 0.10.0",
+ "syn 1.0.54",
+]
+
+[[package]]
+name = "darling_macro"
+version = "0.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f0618ac802792cebd1918ac6042a6ea1eeab92db34b35656afaa577929820788"
+dependencies = [
+ "darling_core",
+ "quote 1.0.7",
+ "syn 1.0.54",
 ]
 
 [[package]]
@@ -225,6 +260,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 
 [[package]]
+name = "fnv"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3f9eec918d3f24069decb9af1554cad7c880e2da24a9afd88aca000531ab82c1"
+
+[[package]]
 name = "generic-array"
 version = "0.12.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -256,6 +297,12 @@ checksum = "5aca5565f760fb5b220e499d72710ed156fdb74e631659e99377d9ebfbd13ae8"
 dependencies = [
  "libc",
 ]
+
+[[package]]
+name = "ident_case"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b9e0384b61958566e926dc50660321d12159025e767c18e043daf26b70104c39"
 
 [[package]]
 name = "itoa"
@@ -310,17 +357,6 @@ name = "memchr"
 version = "2.3.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
-
-[[package]]
-name = "no-panic"
-version = "0.1.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aded1e40001fe4804213d46edcd02eb44b376b3c02ea985f8c71e1e93f8a09d5"
-dependencies = [
- "proc-macro2 1.0.24",
- "quote 1.0.7",
- "syn 1.0.54",
-]
 
 [[package]]
 name = "num-integer"
@@ -394,7 +430,6 @@ dependencies = [
 name = "preflight_impl"
 version = "0.1.0"
 dependencies = [
- "no-panic",
  "preflight_macros",
  "trybuild",
  "uom",
@@ -404,6 +439,7 @@ dependencies = [
 name = "preflight_macros"
 version = "0.1.0"
 dependencies = [
+ "darling",
  "proc-macro2 1.0.24",
  "quote 1.0.7",
  "syn 1.0.54",
@@ -560,6 +596,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8ea5119cdb4c55b55d432abb513a0429384878c15dde60cc77b1c99de1a95a6a"
 
 [[package]]
+name = "strsim"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
 name = "structopt"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -686,9 +728,9 @@ dependencies = [
 
 [[package]]
 name = "trybuild"
-version = "1.0.35"
+version = "1.0.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b7d30fe369fd650072b352b1a9cb9587669de6b89be3b8225544012c1c45292d"
+checksum = "18ccca2bc5e97a2688cba15c573d5179cdff976fc597b95472c2e0f443492b98"
 dependencies = [
  "glob",
  "lazy_static",
@@ -746,7 +788,7 @@ dependencies = [
 [[package]]
 name = "uom"
 version = "0.30.0"
-source = "git+https://github.com/iliekturtles/uom?branch=227-unwind-safe#a94975afa17162cd155d5f72c9545f3ebbf49980"
+source = "git+https://github.com/iliekturtles/uom?rev=5f31ced35975d05ac8ad80688c47efc906ed2962#5f31ced35975d05ac8ad80688c47efc906ed2962"
 dependencies = [
  "num-traits",
  "typenum",
