@@ -13,5 +13,5 @@ structopt = "0.3"
 termcolor = "1.1"
 textwrap = "0.13"
 timescale = { path = "../timescale" }
-toml_edit = "0.2"
 anyhow = "1.0"
+glob = "0.3"

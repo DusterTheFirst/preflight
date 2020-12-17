@@ -1,13 +1,11 @@
-use anyhow::{anyhow, bail, ensure, Context, Result};
-use cargo_metadata::{Message, Metadata, MetadataCommand, Package};
+use anyhow::{anyhow, bail, ensure, Context};
+use cargo_metadata::{Metadata, MetadataCommand, Package};
 use dlopen::utils::{PLATFORM_FILE_EXTENSION, PLATFORM_FILE_PREFIX};
 use std::{
-    fs,
     io::{BufRead, BufReader},
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{Command, Stdio},
 };
-use toml_edit::{value, Array, Document};
 
 use crate::args::CargoArguments;
 
@@ -20,7 +18,7 @@ pub fn get_metadata(args: &CargoArguments) -> cargo_metadata::Result<Metadata> {
     metadata_command.exec()
 }
 
-pub fn get_host_target() -> Result<String> {
+pub fn get_host_target() -> anyhow::Result<String> {
     let output = Command::new("rustc")
         .args(&["-Vv"])
         .stdout(Stdio::piped())
@@ -58,112 +56,41 @@ pub fn build_artifact<'a>(
     cargo_args: &'a CargoArguments,
     target_override: &str,
     package: &'a Package,
-) -> Result<Option<PathBuf>> {
-    // Get the path to the projects manifest
-    let manifest_path = cargo_args
-        .manifest_path
-        .as_ref()
-        .unwrap_or(&package.manifest_path);
-
-    // Create the path to a temporary manifest
-    let temp_manifest_path = [
-        &manifest_path
-            .parent()
-            .context("manifest has no parent directory")?,
-        Path::new("target"),
-        Path::new("preflight"),
-        Path::new("~Cargo.toml.bak"),
-    ]
-    .iter()
-    .collect::<PathBuf>();
-
-    // Ensure the parent directory exists
-    {
-        let dir = temp_manifest_path.parent().unwrap();
-        fs::create_dir_all(dir).with_context(|| format!("failed to create dir {:?}", dir))?;
-    }
-
-    {
-        // Copy the user's manifest to the temporary manifest for backup
-        fs::copy(&manifest_path, &temp_manifest_path).with_context(|| {
-            format!(
-                "failed to copy manifest from {:?} to temporary file {:?}",
-                manifest_path, temp_manifest_path
-            )
-        })?;
-
-        // Load in the user's manifest
-        let manifest = fs::read_to_string(manifest_path)
-            .with_context(|| format!("failed to read manifest from {:?}", manifest_path))?;
-
-        // Parse it for editing
-        let mut doc = manifest
-            .parse::<Document>()
-            .with_context(|| format!("failed to parse manifest at {:?}", manifest_path))?;
-
-        // Edit the crate-type
-        doc["lib"]["crate-type"] = value({
-            let mut a = Array::default();
-
-            a.push("dylib").unwrap();
-
-            a
-        });
-
-        // Save the edited manifest back to the Cargo.toml
-        fs::write(&manifest_path, doc.to_string_in_original_order())
-            .with_context(|| format!("failed to write manifest to {:?}", temp_manifest_path))?;
-    }
-
+) -> anyhow::Result<Option<PathBuf>> {
     // Build the program
     let mut build_command = Command::new(&cargo_args.cargo_path)
         .args(
             [
                 "rustc",
-                "--message-format=json-render-diagnostics",
                 &format!("--target={}", target_override),
-                &format!("--manifest-path={}", manifest_path.to_string_lossy()),
                 if cargo_args.offline { "--offline" } else { "" },
                 if cargo_args.release { "--release" } else { "" },
+                "--",
+                "--crate-type=dylib",
             ]
             .iter()
             .filter(|x| !x.is_empty()),
         )
         .env("__PREFLIGHT", "testing")
-        .stdout(Stdio::piped())
         .spawn()
         .context("`cargo` failed to run to completion")?;
 
-    // Create a vector to hold the found artifacts' paths
-    let mut artifacts = Vec::with_capacity(4);
-
-    // Read in the artifacts
-    let reader = BufReader::new(build_command.stdout.take().unwrap());
-    for message in Message::parse_stream(reader) {
-        match message.context("failed to read output from `cargo`")? {
-            // Only react to dylib artifacts for this crate
-            Message::CompilerArtifact(artifact)
-                if artifact.package_id == package.id
-                    && artifact.target.kind.contains(&"dylib".to_string()) =>
-            {
-                // Find the file that matches the dylib that is produced
-                let new_file = artifact.filenames.into_iter().find(|file| {
-                    file.file_name().map_or(false, |name| {
-                        let name = name.to_string_lossy();
-
-                        name.starts_with(PLATFORM_FILE_PREFIX)
-                            && name.ends_with(PLATFORM_FILE_EXTENSION)
-                    })
-                });
-
-                // Add the artifact if it exists
-                if let Some(f) = new_file {
-                    artifacts.push(f);
-                }
-            }
-            _ => (),
-        }
-    }
+    // Get the dylib artifacts
+    let mut artifacts = glob::glob(&format!(
+        "target/{target}/{profile}/deps/{prefix}{package}*.{ext}",
+        target = target_override,
+        profile = if cargo_args.release {
+            "release"
+        } else {
+            "debug"
+        },
+        prefix = PLATFORM_FILE_PREFIX,
+        package = package.name,
+        ext = PLATFORM_FILE_EXTENSION
+    ))
+    .context("Failed to read glob pattern")?
+    .collect::<Result<Vec<_>, _>>()
+    .context("Failed to get artifact path")?;
 
     // Get the one artifact if there is only one, if there are multiple, error out
     let artifact = match artifacts.len() {
@@ -175,23 +102,6 @@ pub fn build_artifact<'a>(
     let status = build_command
         .wait()
         .context("`cargo` failed to run to completion")?;
-
-    // Revert manifest
-    {
-        fs::copy(&temp_manifest_path, &manifest_path).with_context(|| {
-            format!(
-                "failed to copy old manifest from {:?} back to {:?}",
-                temp_manifest_path, manifest_path
-            )
-        })?;
-
-        fs::remove_file(&temp_manifest_path).with_context(|| {
-            format!(
-                "failed to delete the temporary manifest at {:?}",
-                temp_manifest_path
-            )
-        })?;
-    }
 
     ensure!(
         status.success(),
