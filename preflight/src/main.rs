@@ -1,6 +1,7 @@
+use core::panic::PanicInfo;
 use std::{
     io::{self},
-    panic, unimplemented,
+    panic, process, thread, unimplemented,
 };
 
 use cargo_preflight::{
@@ -73,10 +74,27 @@ fn check(cargo_args: CargoArguments, shell: &mut Shell) -> io::Result<()> {
                 };
 
                 if *api.preflight() {
-                    let altitude = Length::new::<meter>(0.0);
-                    let input = Sensors { altitude };
-                    let result = api.avionics_guide(&input);
-                    dbg!(&result);
+                    api.set_panic_callback(|panic_info: &PanicInfo| {
+                        // shell.error(&format!("GUIDANCE SYSTEM PANIC!"));
+                        println!("GUIDANCE SYSTEM PANIC WITH INPUT {}!\n{}", panic_info);
+                        dbg!(thread::current());
+                        process::exit(1);
+                    });
+
+                    dbg!(thread::current());
+
+                    thread::Builder::new()
+                        .name("flight control".into())
+                        .spawn(move || {
+                            let altitude = Length::new::<meter>(0.0);
+                            let input = Sensors { altitude };
+                            let result = api.avionics_guide(&input);
+                            dbg!(&result);
+                        })
+                        .expect("Failed to spawn control thread")
+                        .join()
+                        .expect("Failed to complete control test");
+
                 // if result.is_err() {
                 //     shell.error(format!(
                 //         "the avionics panicked with the input: {:?}",

@@ -13,6 +13,8 @@ pub struct AvionicsParameters {
 }
 
 pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStream> {
+    let testing = option_env!("__PREFLIGHT") == Some("testing");
+
     let (implementation, st) = {
         let ItemImpl {
             self_ty, trait_, ..
@@ -51,23 +53,38 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         (&input, self_ty)
     };
 
-    let platform_impl = if let Some("testing") = option_env!("__PREFLIGHT") {
+    let platform_impl = if testing {
         // Running under preflight
 
         quote! {
             #[no_mangle]
+            #[doc(hidden)]
             pub fn avionics_guide(sensors: &Sensors) -> Option<Control> {
                 unsafe { AVIONICS.guide(sensors) }
             }
 
             #[no_mangle]
+            #[doc(hidden)]
             pub static __PREFLIGHT: bool = true;
+
+            #[doc(hidden)]
+            type PanicCallback = fn(panic_info: &core::panic::PanicInfo);
+
+            #[doc(hidden)]
+            static mut __PANIC_CALLBACK: Option<PanicCallback>  = None;
+
+            #[no_mangle]
+            #[doc(hidden)]
+            pub fn set_panic_callback(callback: PanicCallback) -> Option<PanicCallback> {
+                unsafe { __PANIC_CALLBACK.replace(callback) }
+            }
         }
     } else {
         // Building
 
         quote! {
             #[no_mangle]
+            #[doc(hidden)]
             extern "C" fn avionics_guide(sensors: &Sensors) -> Option<Control> {
                 unsafe { AVIONICS.guide(sensors) }
             }
@@ -82,14 +99,29 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         }
     };
 
+    // TODO: PUT uC IN DEEP SLEEP ON PANIC OR SMTHN or call back into c code to handle panic
     let panic_handler = if params.panic_handler.is_some() {
-        Some(quote! {
-            use core::panic::PanicInfo;
+        let panic_handle = if testing {
+            Some(quote! {
+                if let Some(callback) = unsafe { __PANIC_CALLBACK } {
+                    callback(_panic_info)
+                }
+            })
+        } else {
+            None
+        };
 
-            #[panic_handler]
-            fn handle_panic(_: &PanicInfo) -> ! {
-                loop {}
-            }
+        Some(quote! {
+            const _: () = {
+                #[panic_handler]
+                fn handle_panic(_panic_info: &core::panic::PanicInfo) -> ! {
+                    #panic_handle
+
+                    loop {
+                        core::sync::atomic::spin_loop_hint()
+                    }
+                }
+            };
         })
     } else {
         None

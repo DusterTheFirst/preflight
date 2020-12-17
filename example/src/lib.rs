@@ -15,7 +15,8 @@ impl Controller {
 #[avionics_harness(default = "Controller::new", panic_handler)]
 impl Avionics for Controller {
     fn guide(&mut self, sensors: &Sensors) -> Option<Control> {
-        None
+        // None
         // Some(c)
+        todo!()
     }
 }

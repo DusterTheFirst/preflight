@@ -75,6 +75,11 @@ pub fn build_artifact<'a>(
         .spawn()
         .context("`cargo` failed to run to completion")?;
 
+    // Wait for cargo to finish
+    let status = build_command
+        .wait()
+        .context("`cargo` failed to run to completion")?;
+
     // Get the dylib artifacts
     let mut artifacts = glob::glob(&format!(
         "target/{target}/{profile}/deps/{prefix}{package}*.{ext}",
@@ -97,11 +102,6 @@ pub fn build_artifact<'a>(
         0 | 1 => artifacts.pop(),
         _ => bail!("found ambiguous dylib artifacts: {:?}", artifacts),
     };
-
-    // Wait for cargo to finish
-    let status = build_command
-        .wait()
-        .context("`cargo` failed to run to completion")?;
 
     ensure!(
         status.success(),
