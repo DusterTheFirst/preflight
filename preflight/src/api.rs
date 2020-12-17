@@ -6,7 +6,7 @@ use dlopen::wrapper::WrapperApi;
 type PanicCallback = fn(panic_info: &PanicInfo);
 
 #[derive(WrapperApi)]
-pub struct Api<'a> {
+pub struct Harness<'a> {
     avionics_guide: fn(sensors: &Sensors) -> Option<Control>,
     #[dlopen_name = "__PREFLIGHT"]
     preflight: &'a bool,
