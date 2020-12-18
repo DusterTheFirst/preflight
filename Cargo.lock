@@ -92,6 +92,7 @@ dependencies = [
  "dlopen",
  "dlopen_derive",
  "glob",
+ "lazy_static",
  "preflight_impl",
  "structopt",
  "termcolor",

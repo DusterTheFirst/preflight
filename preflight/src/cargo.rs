@@ -1,5 +1,5 @@
 use anyhow::{anyhow, bail, ensure, Context};
-use cargo_metadata::{Metadata, MetadataCommand, Package};
+use cargo_metadata::{Message, Metadata, MetadataCommand, Package};
 use dlopen::utils::{PLATFORM_FILE_EXTENSION, PLATFORM_FILE_PREFIX};
 use std::{
     io::{BufRead, BufReader},
