@@ -7,12 +7,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
-use cargo_preflight::{
-    api::Harness,
-    args::{CargoArguments, CargoSpawnedArguments, PreflightCommand},
-    cargo::{build_artifact, get_host_target, get_metadata},
-    shell::Shell,
-};
+use cargo_preflight::{Vector3, api::Harness, args::{CargoArguments, CargoSpawnedArguments, PreflightCommand}, cargo::{build_artifact, get_host_target, get_metadata}, shell::Shell, uom::si::acceleration::{meter_per_second_squared, Acceleration}};
 use dlopen::wrapper::Container;
 use lazy_static::lazy_static;
 use preflight_impl::{
@@ -67,6 +62,12 @@ fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
     for _ in 0..10 {
         *LAST_SENSORS.write().unwrap() = Sensors {
             altitude: Length::new::<meter>(0.0),
+            linear_acceleration: Vector3::zero(),
+            gravity_acceleration: (),
+            both_acceleration: (),
+            orientation: (),
+            angular_velocity: (),
+            magnetic_field: (),
         };
 
         let result = harness.avionics_guide(&LAST_SENSORS.read().unwrap());
