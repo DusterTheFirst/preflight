@@ -7,7 +7,13 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
-use cargo_preflight::{Vector3, api::Harness, args::{CargoArguments, CargoSpawnedArguments, PreflightCommand}, cargo::{build_artifact, get_host_target, get_metadata}, shell::Shell, uom::si::acceleration::{meter_per_second_squared, Acceleration}};
+use cargo_preflight::{
+    api::Harness,
+    args::{CargoArguments, CargoSpawnedArguments, PreflightCommand},
+    cargo::{build_artifact, get_host_target, get_metadata},
+    shell::Shell,
+    Vector3,
+};
 use dlopen::wrapper::Container;
 use lazy_static::lazy_static;
 use preflight_impl::{
@@ -47,6 +53,12 @@ fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
     lazy_static! {
         static ref LAST_SENSORS: RwLock<Sensors> = RwLock::new(Sensors {
             altitude: Length::new::<meter>(0.0),
+            linear_acceleration: Vector3::zero(),
+            gravity_acceleration: Vector3::zero(),
+            both_acceleration: Vector3::zero(),
+            orientation: Vector3::zero(),
+            angular_velocity: Vector3::zero(),
+            magnetic_field: Vector3::zero(),
         });
     }
 
@@ -63,12 +75,20 @@ fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
         *LAST_SENSORS.write().unwrap() = Sensors {
             altitude: Length::new::<meter>(0.0),
             linear_acceleration: Vector3::zero(),
-            gravity_acceleration: (),
-            both_acceleration: (),
-            orientation: (),
-            angular_velocity: (),
-            magnetic_field: (),
+            gravity_acceleration: Vector3::zero(),
+            both_acceleration: Vector3::zero(),
+            orientation: Vector3::zero(),
+            angular_velocity: Vector3::zero(),
+            magnetic_field: Vector3::zero(),
         };
+
+        // println!(
+        //     "{}",
+        //     Length::format_args(
+        //         Length::new::<meter>(0.0),
+        //         cargo_preflight::uom::fmt::DisplayStyle::Description
+        //     )
+        // );
 
         let result = harness.avionics_guide(&LAST_SENSORS.read().unwrap());
 

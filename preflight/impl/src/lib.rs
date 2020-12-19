@@ -1,6 +1,9 @@
 #![no_std]
 
-use core::fmt::{self, Debug, Formatter};
+use core::{
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+};
 
 pub use preflight_macros::avionics_harness;
 pub use uom;
@@ -39,7 +42,7 @@ pub struct Vector3<T: Dimension + ?Sized> {
 impl<T: Dimension + ?Sized> Debug for Vector3<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         f.debug_struct("Vector3")
-            .field("x", &self.x)
+            .field("x", &self.x) //Quantity::format_args(self.x, Abbreviation)
             .field("y", &self.y)
             .field("z", &self.z)
             .finish()
@@ -53,15 +56,27 @@ impl<T: Dimension + ?Sized> Vector3<T> {
 
     pub fn zero() -> Self {
         Self {
-            x: Quantity::default(),
-            y: Quantity::default(),
-            z: Quantity::default(),
+            x: Quantity {
+                dimension: PhantomData,
+                units: PhantomData,
+                value: 0.0,
+            },
+            y: Quantity {
+                dimension: PhantomData,
+                units: PhantomData,
+                value: 0.0,
+            },
+            z: Quantity {
+                dimension: PhantomData,
+                units: PhantomData,
+                value: 0.0,
+            },
         }
     }
 }
 
 #[repr(C)]
-#[cfg_attr(debug_assertions, derive(Debug))]
+#[derive(Debug)]
 pub enum Control {
     ABORT(AbortCause),
     Guidance(Guidance),

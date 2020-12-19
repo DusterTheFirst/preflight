@@ -11,6 +11,7 @@ preflight_macros = { path = "../macros" }
 # version = "0.30"
 git = "https://github.com/iliekturtles/uom"
 rev = "5f31ced35975d05ac8ad80688c47efc906ed2962"
+# path = "../../../uom"
 default-features = false
 features = ["autoconvert", "f32", "f64", "si"]
 
