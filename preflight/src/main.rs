@@ -3,7 +3,7 @@ use std::{
     io::{self},
     mem::MaybeUninit,
     panic, process,
-    sync::{Arc, RwLock},
+    sync::RwLock,
     unimplemented,
 };
 
@@ -51,41 +51,30 @@ fn main() -> io::Result<()> {
 }
 
 fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
-    static mut AVIONICS_HARNESS: Option<Container<Harness<'static>>> = None;
-    static mut AVIONICS: Option<&mut dyn Avionics> = None;
-    static mut LAST_SENSORS: Option<Sensors> = None;
+    lazy_static! {
+        static ref LAST_SENSORS: RwLock<Sensors> =
+            RwLock::new(unsafe { MaybeUninit::uninit().assume_init() });
+    }
 
-    unsafe { AVIONICS_HARNESS = Some(harness) };
-    unsafe { AVIONICS = Some(AVIONICS_HARNESS.as_ref().unwrap().get_avionics_state_mut()) };
-
-    lazy_static! {}
-
-    let harness = unsafe { AVIONICS_HARNESS.as_ref().unwrap() }; // TODO: CLEAN UP?
-    let avionics = unsafe { AVIONICS.as_mut().unwrap() };
-
-    harness.set_panic_callback(|panic_info: &PanicInfo| {
-        let avionics = unsafe { AVIONICS.as_ref().unwrap() };
-
+    harness.set_panic_callback(|panic_info: &PanicInfo, avionics: &dyn Avionics| {
         println!(
             "\nGUIDANCE SYSTEM PANIC!\n{}\n----INPUT----\n{:#?}\n----CURRENT STATE----\n{:#?}",
             panic_info,
-            unsafe { LAST_SENSORS.as_ref() },
+            *LAST_SENSORS.read().unwrap(),
             avionics
         );
         process::exit(1);
     });
 
     for _ in 0..10 {
-        unsafe {
-            LAST_SENSORS = Some(Sensors {
-                altitude: Length::new::<meter>(0.0),
-                linear_acceleration: Vector3::zero(),
-                gravity_acceleration: Vector3::zero(),
-                both_acceleration: Vector3::zero(),
-                orientation: Vector3::zero(),
-                angular_velocity: Vector3::zero(),
-                magnetic_field: Vector3::zero(),
-            })
+        *LAST_SENSORS.write().unwrap() = Sensors {
+            altitude: Length::new::<meter>(0.0),
+            linear_acceleration: Vector3::zero(),
+            gravity_acceleration: Vector3::zero(),
+            both_acceleration: Vector3::zero(),
+            orientation: Vector3::zero(),
+            angular_velocity: Vector3::zero(),
+            magnetic_field: Vector3::zero(),
         };
 
         // println!(
@@ -96,8 +85,7 @@ fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
         //     )
         // );
 
-        // let result = harness.avionics_guide(&LAST_SENSORS.read().unwrap());
-        let result = avionics.guide(unsafe { LAST_SENSORS.as_ref().unwrap() });
+        let result = harness.avionics_guide(&LAST_SENSORS.read().unwrap());
         dbg!(&result);
     }
 
