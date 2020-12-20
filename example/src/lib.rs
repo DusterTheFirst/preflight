@@ -2,6 +2,7 @@
 
 use preflight_impl::{avionics_harness, Avionics, Control, Sensors};
 
+#[derive(Debug)]
 pub struct Controller {
     ticks: u64,
 }
@@ -12,7 +13,7 @@ impl Controller {
     }
 }
 
-#[avionics_harness(default = "Controller::new", panic_handler)]
+#[avionics_harness(default = "Controller::new")]
 impl Avionics for Controller {
     fn guide(&mut self, sensors: &Sensors) -> Option<Control> {
         // None

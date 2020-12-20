@@ -1,4 +1,4 @@
-use darling::{util::Flag, FromMeta};
+use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
 use syn::{spanned::Spanned, Error, ItemImpl, Result};
@@ -8,8 +8,6 @@ use crate::util::reconstruct;
 #[derive(Debug, FromMeta)]
 pub struct AvionicsParameters {
     default: String,
-    #[darling(default)]
-    panic_handler: Flag,
 }
 
 pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStream> {
@@ -58,25 +56,25 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
 
         quote! {
             #[no_mangle]
-            #[doc(hidden)]
             pub fn avionics_guide(sensors: &Sensors) -> Option<Control> {
                 unsafe { AVIONICS.guide(sensors) }
             }
 
             #[no_mangle]
-            #[doc(hidden)]
             pub static __PREFLIGHT: bool = true;
 
-            #[doc(hidden)]
             type PanicCallback = fn(panic_info: &core::panic::PanicInfo);
 
-            #[doc(hidden)]
-            static mut __PANIC_CALLBACK: Option<PanicCallback>  = None;
+            static mut __PANIC_CALLBACK: Option<PanicCallback> = None;
 
             #[no_mangle]
-            #[doc(hidden)]
             pub fn set_panic_callback(callback: PanicCallback) -> Option<PanicCallback> {
                 unsafe { __PANIC_CALLBACK.replace(callback) }
+            }
+
+            #[no_mangle]
+            pub fn get_avionics_state() -> &'static dyn Avionics {
+                unsafe { &AVIONICS }
             }
         }
     } else {
@@ -84,7 +82,6 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
 
         quote! {
             #[no_mangle]
-            #[doc(hidden)]
             extern "C" fn avionics_guide(sensors: &Sensors) -> Option<Control> {
                 unsafe { AVIONICS.guide(sensors) }
             }
@@ -99,29 +96,11 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         }
     };
 
-    // TODO: PUT uC IN DEEP SLEEP ON PANIC OR SMTHN or call back into c code to handle panic
-    let panic_handler = if params.panic_handler.is_some() {
-        let panic_handle = if testing {
-            Some(quote! {
-                if let Some(callback) = unsafe { __PANIC_CALLBACK } {
-                    callback(_panic_info)
-                }
-            })
-        } else {
-            None
-        };
-
+    let panic_handle = if testing {
         Some(quote! {
-            const _: () = {
-                #[panic_handler]
-                fn handle_panic(_panic_info: &core::panic::PanicInfo) -> ! {
-                    #panic_handle
-
-                    loop {
-                        core::sync::atomic::spin_loop_hint()
-                    }
-                }
-            };
+            if let Some(callback) = unsafe { __PANIC_CALLBACK } {
+                callback(_panic_info)
+            }
         })
     } else {
         None
@@ -130,10 +109,23 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
     Ok(quote! {
         #implementation
 
-        static mut AVIONICS: #st = #default();
+        #[doc(hidden)]
+        mod __PREFLIGHT {
+            use super::*;
 
-        #platform_impl
+            static mut AVIONICS: #st = #default();
 
-        #panic_handler
+            #platform_impl
+
+            // TODO: PUT uC IN DEEP SLEEP ON PANIC OR SMTHN or call back into c code to handle panic
+            #[panic_handler]
+            fn handle_panic(_panic_info: &core::panic::PanicInfo) -> ! {
+                #panic_handle
+
+                loop {
+                    core::sync::atomic::spin_loop_hint()
+                }
+            }
+        }
     })
 }

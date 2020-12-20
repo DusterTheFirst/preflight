@@ -2,6 +2,7 @@ use core::panic::PanicInfo;
 use std::{
     io::{self},
     panic, process,
+    sync::Arc,
     sync::RwLock,
     unimplemented,
 };
@@ -60,13 +61,28 @@ fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
             angular_velocity: Vector3::zero(),
             magnetic_field: Vector3::zero(),
         });
+        static ref AVIONICS_HARNESS: Arc<RwLock<Option<Container<Harness<'static>>>>> =
+            Arc::new(RwLock::new(None));
     }
+
+    *AVIONICS_HARNESS.write().unwrap() = Some(harness);
+
+    let harness = AVIONICS_HARNESS.clone();
+    let harness = harness.read().unwrap();
+    let harness = harness.as_ref().unwrap(); // TODO: CLEAN UP?
 
     harness.set_panic_callback(|panic_info: &PanicInfo| {
         println!(
-            "\nGUIDANCE SYSTEM PANIC!\n{}\n----INPUT----\n{:#?}",
+            "\nGUIDANCE SYSTEM PANIC!\n{}\n----INPUT----\n{:#?}\n----CURRENT STATE----\n{:#?}",
             panic_info,
             *LAST_SENSORS.read().unwrap(),
+            AVIONICS_HARNESS
+                .clone()
+                .read()
+                .unwrap()
+                .as_ref()
+                .unwrap()
+                .get_avionics_state() // TODO: Clean up?
         );
         process::exit(1);
     });
