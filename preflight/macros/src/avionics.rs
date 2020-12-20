@@ -55,10 +55,10 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         // Running under preflight
 
         quote! {
-            #[no_mangle]
-            pub fn avionics_guide(sensors: &Sensors) -> Option<Control> {
-                unsafe { AVIONICS.guide(sensors) }
-            }
+            // #[no_mangle]
+            // pub fn avionics_guide(sensors: &Sensors) -> Option<Control> {
+            //     unsafe { AVIONICS.guide(sensors) }
+            // }
 
             #[no_mangle]
             pub static __PREFLIGHT: bool = true;
@@ -68,13 +68,18 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
             static mut __PANIC_CALLBACK: Option<PanicCallback> = None;
 
             #[no_mangle]
-            pub fn set_panic_callback(callback: PanicCallback) -> Option<PanicCallback> {
-                unsafe { __PANIC_CALLBACK.replace(callback) }
+            pub unsafe fn set_panic_callback(callback: PanicCallback) -> Option<PanicCallback> {
+                __PANIC_CALLBACK.replace(callback)
             }
 
             #[no_mangle]
-            pub fn get_avionics_state() -> &'static dyn Avionics {
-                unsafe { &AVIONICS }
+            pub unsafe fn get_avionics_state() -> &'static dyn Avionics {
+                &AVIONICS
+            }
+
+            #[no_mangle]
+            pub unsafe fn get_avionics_state_mut() -> &'static mut dyn Avionics {
+                &mut AVIONICS
             }
         }
     } else {
@@ -82,8 +87,8 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
 
         quote! {
             #[no_mangle]
-            extern "C" fn avionics_guide(sensors: &Sensors) -> Option<Control> {
-                unsafe { AVIONICS.guide(sensors) }
+            extern "C" unsafe fn avionics_guide(sensors: &Sensors) -> Option<Control> {
+                AVIONICS.guide(sensors)
             }
         }
     };

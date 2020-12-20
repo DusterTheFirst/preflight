@@ -102,6 +102,6 @@ pub struct ThrustVector {
     z: Quantity<angle::Dimension>,
 }
 
-pub trait Avionics: Debug {
+pub trait Avionics: Debug + Send + Sync {
     fn guide(&mut self, sensors: &Sensors) -> Option<Control>;
 }
