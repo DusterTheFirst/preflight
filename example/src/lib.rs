@@ -16,6 +16,7 @@ impl Controller {
 #[avionics_harness(default = "Controller::new")]
 impl Avionics for Controller {
     fn guide(&mut self, sensors: &Sensors) -> Option<Control> {
+        self.ticks += 1;
         // None
         // Some(c)
         todo!()

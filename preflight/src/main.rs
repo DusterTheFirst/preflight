@@ -1,17 +1,12 @@
 use core::panic::PanicInfo;
-use std::{
-    io::{self},
-    mem::MaybeUninit,
-    panic, process,
-    sync::RwLock,
-    unimplemented,
-};
+use std::{io, mem::MaybeUninit, panic, sync::RwLock, unimplemented};
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use cargo_preflight::{
     api::Harness,
-    args::{CargoArguments, CargoSpawnedArguments, PreflightCommand},
+    args::{CargoArguments, CargoSpawnedArguments, PanicHandleArguments, PreflightCommand},
     cargo::{build_artifact, get_host_target, get_metadata},
+    panic::panic_handle,
     shell::Shell,
     Vector3,
 };
@@ -29,41 +24,43 @@ fn main() -> io::Result<()> {
     let CargoSpawnedArguments::Preflight(args) = CargoSpawnedArguments::from_args();
 
     match args.command {
-        PreflightCommand::Check(args) => {
-            if let Err(e) = load_harness(args, &mut shell) {
+        PreflightCommand::Check { cargo } => {
+            if let Err(e) = load_harness(&cargo, &mut shell) {
                 shell.error(format!("{:#}", e))?
             } else {
                 shell.status("Success", "built and loaded avionics harness successfully")?;
             }
         }
-        PreflightCommand::Test(args) => match load_harness(args, &mut shell) {
+        PreflightCommand::Test { cargo, args } => match load_harness(&cargo, &mut shell) {
             Err(e) => shell.error(format!("{:#}", e))?,
-            Ok(harness) => match fuzz_harness(harness) {
+            Ok(harness) => match fuzz_harness(harness, args) {
                 Err(e) => shell.error(format!("{:#}", e))?,
                 Ok(false) => shell.error("harness failed to run")?,
                 Ok(true) => shell.status("Finished", "TODO:")?,
             },
         },
-        PreflightCommand::Simulate(_) => unimplemented!(),
+        PreflightCommand::Simulate { .. } => unimplemented!(),
     }
 
     Ok(())
 }
 
-fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
+fn fuzz_harness(harness: Container<Harness<'static>>, args: PanicHandleArguments) -> Result<bool> {
     lazy_static! {
         static ref LAST_SENSORS: RwLock<Sensors> =
             RwLock::new(unsafe { MaybeUninit::uninit().assume_init() });
+        static ref ARGS: RwLock<PanicHandleArguments> = RwLock::new(Default::default());
     }
 
+    *ARGS.write().unwrap() = args;
+
     harness.set_panic_callback(|panic_info: &PanicInfo, avionics: &dyn Avionics| {
-        println!(
-            "\nGUIDANCE SYSTEM PANIC!\n{}\n----INPUT----\n{:#?}\n----CURRENT STATE----\n{:#?}",
+        panic_handle(
             panic_info,
-            *LAST_SENSORS.read().unwrap(),
-            avionics
+            avionics,
+            &LAST_SENSORS.read().unwrap(),
+            &ARGS.read().unwrap(),
         );
-        process::exit(1);
     });
 
     for _ in 0..10 {
@@ -93,7 +90,7 @@ fn fuzz_harness(harness: Container<Harness<'static>>) -> Result<bool> {
 }
 
 fn load_harness(
-    cargo_args: CargoArguments,
+    cargo_args: &CargoArguments,
     shell: &mut Shell,
 ) -> anyhow::Result<Container<Harness<'static>>> {
     let host_target = get_host_target()?;

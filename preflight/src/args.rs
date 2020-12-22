@@ -18,11 +18,30 @@ pub struct Arguments {
 #[derive(StructOpt)]
 pub enum PreflightCommand {
     /// Check the layout and setup of the project for compatibility with the preflight runner
-    Check(CargoArguments),
+    Check {
+        #[structopt(flatten)]
+        cargo: CargoArguments,
+    },
     /// Run a set of automated tests on the project
-    Test(CargoArguments),
+    Test {
+        #[structopt(flatten)]
+        cargo: CargoArguments,
+        #[structopt(flatten)]
+        args: PanicHandleArguments,
+    },
     /// Run a simulation on the project
-    Simulate(CargoArguments),
+    Simulate {
+        #[structopt(flatten)]
+        cargo: CargoArguments,
+    },
+}
+
+#[derive(StructOpt)]
+#[derive(Default)]
+pub struct PanicHandleArguments {
+    /// Open the panic report upon panic
+    #[structopt(long, short)]
+    pub open: bool,
 }
 
 #[derive(StructOpt)]

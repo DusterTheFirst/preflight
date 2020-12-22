@@ -41,6 +41,10 @@ pub struct Vector3<T: Dimension + ?Sized> {
 
 impl<T: Dimension + ?Sized> Debug for Vector3<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        // if f.alternate() {
+
+        // }
+        // write!(f, "({}, {}, {})", self.x.value, self.y.value, self.z);
         f.debug_struct("Vector3")
             .field("x", &self.x) //Quantity::format_args(self.x, Abbreviation)
             .field("y", &self.y)

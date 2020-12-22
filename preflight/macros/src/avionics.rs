@@ -77,7 +77,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
 
         quote! {
             #[no_mangle]
-            extern "C" unsafe fn avionics_guide(sensors: &Sensors) -> Option<Control> {
+            unsafe extern "C" fn avionics_guide(sensors: &Sensors) -> Option<Control> {
                 AVIONICS.guide(sensors)
             }
         }
@@ -92,13 +92,19 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
     };
 
     let panic_handle = if testing {
-        Some(quote! {
+        quote! {
             if let Some(callback) = unsafe { __PANIC_CALLBACK } {
                 callback(_panic_info, unsafe { &AVIONICS })
             }
-        })
+        }
     } else {
-        None
+        quote! {
+            extern "C" {
+                fn panic_abort();
+            }
+
+            unsafe { panic_abort() };
+        }
     };
 
     Ok(quote! {
