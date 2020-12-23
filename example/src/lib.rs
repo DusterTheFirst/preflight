@@ -18,8 +18,8 @@ impl Controller {
 impl Avionics for Controller {
     fn guide(&mut self, sensors: &Sensors) -> Option<Control> {
         self.ticks += 1;
-        // None
+        None
         // Some(c)
-        todo!()
+        // todo!()
     }
 }

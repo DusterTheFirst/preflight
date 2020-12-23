@@ -35,7 +35,7 @@ fn main() -> io::Result<()> {
             sim,
         } => match load_harness(&cargo, &mut shell) {
             Err(e) => shell.error(format!("{:#}", e))?,
-            Ok(harness) => match fuzz_harness(harness.setup_panic(panic)) {
+            Ok(harness) => match test_harness(harness.setup_panic(panic)) {
                 Err(e) => shell.error(format!("{:#}", e))?,
                 Ok(false) => shell.error("harness failed to run")?,
                 Ok(true) => shell.status("Finished", "TODO:")?,
@@ -47,7 +47,7 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn fuzz_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
+fn test_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
     for _ in 0..10 {
         println!(
             "{:?}",
