@@ -1,20 +1,17 @@
-use core::panic::PanicInfo;
-use std::{io, mem::MaybeUninit, panic, sync::RwLock, unimplemented};
+use std::io;
 
-use anyhow::{anyhow, bail, ensure, Context, Result};
+use anyhow::{anyhow, Context, Result};
 use cargo_preflight::{
-    api::Harness,
-    args::{CargoArguments, CargoSpawnedArguments, PanicHandleArguments, PreflightCommand},
+    args::{CargoArguments, CargoSpawnedArguments, PreflightCommand},
     cargo::{build_artifact, get_host_target, get_metadata},
-    panic::panic_handle,
+    harness::{AvionicsHarness, PanicCaught, PanicHang},
     shell::Shell,
+    uom::si::SI,
     Vector3,
 };
-use dlopen::wrapper::Container;
-use lazy_static::lazy_static;
 use preflight_impl::{
     uom::si::length::{meter, Length},
-    Avionics, Sensors,
+    Sensors,
 };
 use structopt::StructOpt;
 
@@ -31,40 +28,34 @@ fn main() -> io::Result<()> {
                 shell.status("Success", "built and loaded avionics harness successfully")?;
             }
         }
-        PreflightCommand::Test { cargo, args } => match load_harness(&cargo, &mut shell) {
+        PreflightCommand::Test {
+            cargo,
+            panic,
+            display,
+            sim,
+        } => match load_harness(&cargo, &mut shell) {
             Err(e) => shell.error(format!("{:#}", e))?,
-            Ok(harness) => match fuzz_harness(harness, args) {
+            Ok(harness) => match fuzz_harness(harness.setup_panic(panic)) {
                 Err(e) => shell.error(format!("{:#}", e))?,
                 Ok(false) => shell.error("harness failed to run")?,
                 Ok(true) => shell.status("Finished", "TODO:")?,
             },
         },
-        PreflightCommand::Simulate { .. } => unimplemented!(),
+        // PreflightCommand::Simulate { .. } => unimplemented!(),
     }
 
     Ok(())
 }
 
-fn fuzz_harness(harness: Container<Harness<'static>>, args: PanicHandleArguments) -> Result<bool> {
-    lazy_static! {
-        static ref LAST_SENSORS: RwLock<Sensors> =
-            RwLock::new(unsafe { MaybeUninit::uninit().assume_init() });
-        static ref ARGS: RwLock<PanicHandleArguments> = RwLock::new(Default::default());
-    }
-
-    *ARGS.write().unwrap() = args;
-
-    harness.set_panic_callback(|panic_info: &PanicInfo, avionics: &dyn Avionics| {
-        panic_handle(
-            panic_info,
-            avionics,
-            &LAST_SENSORS.read().unwrap(),
-            &ARGS.read().unwrap(),
-        );
-    });
-
+fn fuzz_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
     for _ in 0..10 {
-        *LAST_SENSORS.write().unwrap() = Sensors {
+        println!(
+            "{:?}",
+            Length::<SI<f64>, _>::new::<meter>(0.0f64)
+                .into_format_args(meter, cargo_preflight::uom::fmt::DisplayStyle::Description),
+        );
+
+        let result = harness.guide(Sensors {
             altitude: Length::new::<meter>(0.0),
             linear_acceleration: Vector3::zero(),
             gravity_acceleration: Vector3::zero(),
@@ -72,27 +63,17 @@ fn fuzz_harness(harness: Container<Harness<'static>>, args: PanicHandleArguments
             orientation: Vector3::zero(),
             angular_velocity: Vector3::zero(),
             magnetic_field: Vector3::zero(),
-        };
-
-        // println!(
-        //     "{}",
-        //     Length::format_args(
-        //         Length::new::<meter>(0.0),
-        //         cargo_preflight::uom::fmt::DisplayStyle::Description
-        //     )
-        // );
-
-        let result = harness.avionics_guide(&LAST_SENSORS.read().unwrap());
+        });
         dbg!(&result);
     }
 
-    Ok(false)
+    Ok(true)
 }
 
 fn load_harness(
     cargo_args: &CargoArguments,
     shell: &mut Shell,
-) -> anyhow::Result<Container<Harness<'static>>> {
+) -> anyhow::Result<AvionicsHarness<PanicHang>> {
     let host_target = get_host_target()?;
 
     let metadata = get_metadata(&cargo_args).map_err(|e| match e {
@@ -119,21 +100,20 @@ fn load_harness(
     }
 
     match build_artifact(&cargo_args, &host_target, package)? {
-        None => {
-            bail!("the cargo build did not produce any valid artifacts")
-        }
+        None => Err(anyhow!(
+            "the cargo build did not produce any valid artifacts"
+        )),
         Some(artifact_file) => {
             shell.status("Loading", artifact_file.to_string_lossy())?;
 
-            let harness: Container<Harness> = unsafe { Container::load(artifact_file) }
+            let harness = AvionicsHarness::load(&artifact_file)
                 .context("failed to load built shared library")?;
 
-            ensure!(
-                *harness.preflight(),
-                "the dylib was not setup using the `#[avionics_harness]` macro or is using an out of date dependency to preflight_impl"
-            );
-
-            return Ok(harness);
+            if let Some(harness) = harness {
+                Ok(harness)
+            } else {
+                Err(anyhow!("the dylib was not setup using the `#[avionics_harness]` macro or is using an out of date dependency to preflight_impl"))
+            }
         }
     }
 }

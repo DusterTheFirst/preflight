@@ -4,7 +4,7 @@ use std::{
     fs::File,
     io::{self, Write},
     path::{Path, PathBuf},
-    process,
+    process, writeln,
 };
 
 use indoc::indoc;
@@ -67,13 +67,19 @@ pub fn panic_alert(panic_info: &PanicInfo, file: &Path) -> io::Result<()> {
     writeln!(stderr, "{}", panic_info)?;
 
     stderr.set_color(ColorSpec::new().set_fg(Some(Color::Cyan)))?;
-    writeln!(
+    write!(
         stderr,
         indoc! {"
 
             In flight this would trigger an auto abort, but should be avoided at all costs.
-            Detailed information can be found at {:?}
-        "},
-        file
-    )
+            Detailed information can be found at "
+        }
+    )?;
+
+    stderr.set_color(
+        ColorSpec::new()
+            .set_intense(true)
+            .set_fg(Some(Color::Magenta)),
+    )?;
+    writeln!(stderr, "{}", file.to_string_lossy())
 }

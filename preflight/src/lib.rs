@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate dlopen_derive;
 
-pub mod api;
+pub mod harness;
 pub mod args;
 pub mod cargo;
 pub mod shell;

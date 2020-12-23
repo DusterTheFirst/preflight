@@ -27,17 +27,30 @@ pub enum PreflightCommand {
         #[structopt(flatten)]
         cargo: CargoArguments,
         #[structopt(flatten)]
-        args: PanicHandleArguments,
-    },
-    /// Run a simulation on the project
-    Simulate {
+        panic: PanicHandleArguments,
         #[structopt(flatten)]
-        cargo: CargoArguments,
+        sim: SimulationArguments,
+        #[structopt(flatten)]
+        display: DisplayArguments,
     },
+    // /// Run a simulation on the project
+    // Simulate {
+    //     #[structopt(flatten)]
+    //     cargo: CargoArguments,
+    // },
 }
 
 #[derive(StructOpt)]
-#[derive(Default)]
+pub struct SimulationArguments {}
+
+#[derive(StructOpt)]
+pub struct DisplayArguments {
+    /// Disable the gui for headless running
+    #[structopt(long)]
+    pub no_gui: bool
+}
+
+#[derive(StructOpt, Default)]
 pub struct PanicHandleArguments {
     /// Open the panic report upon panic
     #[structopt(long, short)]
