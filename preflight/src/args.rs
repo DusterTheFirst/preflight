@@ -47,7 +47,7 @@ pub struct SimulationArguments {}
 pub struct DisplayArguments {
     /// Disable the gui for headless running
     #[structopt(long)]
-    pub no_gui: bool
+    pub no_gui: bool,
 }
 
 #[derive(StructOpt, Default)]

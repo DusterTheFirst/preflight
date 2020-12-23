@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use darling::FromDeriveInput;
 use derive::{interpolated_data, interpolated_data_table, timescale_derive};
 use proc_macro::TokenStream;

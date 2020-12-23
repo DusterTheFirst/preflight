@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use avionics::AvionicsParameters;
 use darling::FromMeta;
 use proc_macro::TokenStream;

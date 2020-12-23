@@ -25,8 +25,12 @@ pub struct AvionicsHarness<P: AvionicsHarnessState> {
 }
 
 lazy_static! {
-    static ref LAST_SENSORS: RwLock<Sensors> =
-        RwLock::new(unsafe { MaybeUninit::uninit().assume_init() });
+    static ref LAST_SENSORS: RwLock<Sensors> = RwLock::new(
+        #[allow(unsafe_code)]
+        unsafe {
+            MaybeUninit::uninit().assume_init()
+        }
+    );
 }
 
 pub struct PanicHang;
@@ -39,6 +43,7 @@ pub trait AvionicsHarnessState {}
 
 impl AvionicsHarness<PanicHang> {
     pub fn load(so: &Path) -> Result<Option<Self>, dlopen::Error> {
+        #[allow(unsafe_code)]
         let harness: Container<HarnessImpl> = unsafe { Container::load(so) }?;
 
         if *harness.preflight() {

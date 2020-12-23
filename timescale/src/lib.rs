@@ -1,6 +1,7 @@
 //! A crate to work with timescale data and csv files
 
 #![warn(clippy::pedantic, missing_docs)]
+#![forbid(unsafe_code)]
 
 pub use lerp::Lerp;
 use serde::Serialize;

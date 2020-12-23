@@ -1,4 +1,5 @@
 #![no_std]
+#![forbid(unsafe_code)]
 
 use preflight_impl::{avionics_harness, Avionics, Control, Sensors};
 
