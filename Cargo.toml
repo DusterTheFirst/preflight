@@ -1,10 +1,10 @@
 [workspace]
 members = [
-    "timescale",
-    "timescale/macros",
+    "cargo_preflight",
+    "preflight_macros",
     "preflight",
-    "preflight/macros",
-    "preflight/impl",
+    "timescale_macros",
+    "timescale",
 ]
 
 [profile.release]

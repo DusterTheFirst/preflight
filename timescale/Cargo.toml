@@ -6,9 +6,9 @@ edition = "2018"
 description = "A crate to work with timescale data and csv files"
 
 [dependencies]
-timescale_macros = { path = "./macros" }
-serde = "1.0"
 lerp = { branch = "derive_macro", git = "https://github.com/DusterTheFirst/lerp-rs/", features = ["derive"] }
+serde = "1.0"
+timescale_macros = { path = "../timescale_macros" }
 
 [dev-dependencies]
 trybuild = "1.0"

@@ -1,0 +1,17 @@
+error: cannot negate the `Avionics` implementation
+  --> $DIR/fail-invalid-impl.rs:15:6
+   |
+15 | impl !Avionics for Controller {
+   |      ^
+
+warning: unused imports: `Avionics`, `Control`, `Sensors`
+ --> $DIR/fail-invalid-impl.rs:3:40
+  |
+3 | use preflight::{avionics_harness, Avionics, Control, Sensors};
+  |                                        ^^^^^^^^  ^^^^^^^  ^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+error: `#[panic_handler]` function required, but not found
+
+error: language item required, but not found: `eh_personality`
