@@ -9,7 +9,13 @@ use anyhow::{anyhow, Context, Result};
 use args::{CargoArguments, CargoSpawnedArguments, PreflightCommand};
 use cargo::{build_artifact, get_host_target, get_metadata};
 use harness::{AvionicsHarness, PanicCaught, PanicHang};
-use preflight::{Sensors, Vector3, uom::si::{SI, length::{meter, Length}}};
+use preflight::{
+    uom::si::{
+        length::{meter, Length},
+        SI,
+    },
+    Sensors, Vector3,
+};
 use shell::Shell;
 use structopt::StructOpt;
 
