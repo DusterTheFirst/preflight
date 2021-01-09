@@ -39,10 +39,7 @@ pub fn derive(
     let struct_name = &st
         .segments
         .last()
-        .ok_or(Error::new(
-            st.segments.span(),
-            "path must have at least one segment",
-        ))?
+        .ok_or_else(|| Error::new(st.segments.span(), "path must have at least one segment"))?
         .ident;
 
     // Load in the metadata from the struct's csv file
@@ -51,10 +48,12 @@ pub fn derive(
         let timescale_data = (*INTERPOLATED_DATA).read().unwrap();
         let InterpolatedData { fields, rename, ty } = timescale_data
             .get(&struct_name.to_string())
-            .ok_or(Error::new(
-                st.span(),
-                format!("struct `{}` does not derive TimescaleData", struct_name),
-            ))?
+            .ok_or_else(|| {
+                Error::new(
+                    st.span(),
+                    format!("struct `{}` does not derive TimescaleData", struct_name),
+                )
+            })?
             .clone();
 
         (
@@ -103,23 +102,21 @@ pub fn derive(
                 ),
             ));
         }
-    } else {
-        if let Some(h) = csv_headers.next() {
-            if "Time (s)" != h {
-                return Err(Error::new(
+    } else if let Some(h) = csv_headers.next() {
+        if "Time (s)" != h {
+            return Err(Error::new(
                     file.span(),
                     format!(
                         "expected first column `Time (s)` but found `{}`\n\n\t\tnote = you can override this column name using the `#[timescale(rename = \"new name\")]` attribute on the struct `{}`",
                         h, struct_name
                     ),
                 ));
-            }
-        } else {
-            return Err(Error::new(
-                file.span(),
-                format!("expected first column `Time (s)` but found nothing",),
-            ));
         }
+    } else {
+        return Err(Error::new(
+            file.span(),
+            "expected first column `Time (s)` but found nothing",
+        ));
     }
 
     // Collect the rest of the headers
@@ -208,10 +205,7 @@ pub fn derive(
                 time,
             )
         })
-        .ok_or(Error::new(
-            file.span(),
-            "csv file must have at least one entry of data",
-        ))?;
+        .ok_or_else(|| Error::new(file.span(), "csv file must have at least one entry of data"))?;
 
     // Generate the high saturation from the last datapoint
     let (high_saturation, high_value) = records
@@ -228,10 +222,7 @@ pub fn derive(
                 time,
             )
         })
-        .ok_or(Error::new(
-            file.span(),
-            "csv file must have at least one entry of data",
-        ))?;
+        .ok_or_else(|| Error::new(file.span(), "csv file must have at least one entry of data"))?;
 
     // Only generate the linear interpolations if there are more than one record to interpolate between
     let lerps = if records.len() == 1 {

@@ -59,7 +59,7 @@ pub fn derive(input: ItemStruct) -> syn::Result<TokenStream> {
                         field
                             .ident
                             .as_ref()
-                            .ok_or(Error::new(field.span(), "field has no identifier"))?,
+                            .ok_or_else(|| Error::new(field.span(), "field has no identifier"))?,
                     )?;
 
                     fields.push(TimescaleFieldData {

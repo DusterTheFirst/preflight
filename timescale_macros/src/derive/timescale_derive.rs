@@ -7,10 +7,9 @@ pub fn derive(input: ItemStruct) -> Result<TokenStream> {
         Fields::Named(fields) => {
             // Get the metadata needed
             let (name, vis, generics) = (input.ident, input.vis, input.generics);
-            let fields = fields.named.into_iter();
 
             // Create serialization for each vector field
-            let serializers = fields.clone().map(|f| {
+            let serializers = fields.named.into_iter().map(|f| {
                 let name = f.ident;
 
                 quote! {

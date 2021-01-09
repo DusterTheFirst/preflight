@@ -7,6 +7,7 @@ use syn::{
 
 use crate::util::reconstruct;
 
+// TODO: MOVE TO DARLING
 /// Arguments to the `derive(InterpolatedData)` macro
 #[derive(Debug)]
 pub struct InterpolatedDataArgs {
@@ -32,7 +33,7 @@ impl InterpolatedDataArgs {
                     // attribute and also has the name timescale
                     attr.style == AttrStyle::Outer
                         && segment.arguments == PathArguments::None
-                        && segment.ident.to_string() == "data"
+                        && segment.ident == "data"
                 } else {
                     false
                 }

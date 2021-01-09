@@ -27,7 +27,9 @@ pub struct AvionicsHarness<P: AvionicsHarnessState> {
 
 lazy_static! {
     static ref LAST_SENSORS: RwLock<Sensors> = RwLock::new(
-        #[allow(unsafe_code)]
+        #[allow(unsafe_code, clippy::clippy::uninit_assumed_init)]
+        // This is safe, since the sensors are always set before they are ever going to be read from
+        // since a panic cannot happen until after this has been set at least once
         unsafe {
             MaybeUninit::uninit().assume_init()
         }
