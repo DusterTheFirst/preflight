@@ -72,7 +72,7 @@ jobs:
           command: test
 
   clippy-example:
-    name: Test
+    name: Clippy Example
     runs-on: ubuntu-latest
     needs:
       - clippy
