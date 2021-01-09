@@ -1,6 +1,8 @@
+#![no_std]
+
 use preflight_impl::{avionics_harness, Avionics, Control, Sensors};
 
-#[derive(Default)]
+#[derive(Debug)]
 struct Controller;
 
 impl Controller {

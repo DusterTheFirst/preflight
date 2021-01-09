@@ -8,10 +8,12 @@ use crate::util::reconstruct;
 #[derive(Debug, FromMeta)]
 pub struct AvionicsParameters {
     default: String,
+    #[darling(default)]
+    no_panic: bool
 }
 
 pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStream> {
-    let testing = option_env!("__PREFLIGHT") == Some("testing");
+    let preflight_testing = option_env!("__PREFLIGHT") == Some("testing");
 
     let (implementation, st) = {
         let ItemImpl {
@@ -51,7 +53,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         (&input, self_ty)
     };
 
-    let platform_impl = if testing {
+    let platform_impl = if preflight_testing {
         // Running under preflight
 
         quote! {
@@ -91,7 +93,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         }
     };
 
-    let panic_handle = if testing {
+    let platform_panic_handler = if preflight_testing {
         quote! {
             if let Some(callback) = unsafe { __PANIC_CALLBACK } {
                 callback(_panic_info, unsafe { &AVIONICS })
@@ -107,6 +109,22 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         }
     };
 
+    let panic_handler = if params.no_panic {
+        quote! {}
+    } else {
+        quote! {
+            // TODO: PUT uC IN DEEP SLEEP ON PANIC OR SMTHN or call back into c code to handle panic
+            #[cfg_attr(not(test), panic_handler)]
+            fn handle_panic(_panic_info: &core::panic::PanicInfo) -> ! {
+                #platform_panic_handler
+
+                loop {
+                    core::sync::atomic::spin_loop_hint()
+                }
+            }
+        }
+    };
+
     Ok(quote! {
         #implementation
 
@@ -118,15 +136,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
 
             #platform_impl
 
-            // TODO: PUT uC IN DEEP SLEEP ON PANIC OR SMTHN or call back into c code to handle panic
-            #[panic_handler]
-            fn handle_panic(_panic_info: &core::panic::PanicInfo) -> ! {
-                #panic_handle
-
-                loop {
-                    core::sync::atomic::spin_loop_hint()
-                }
-            }
+            #panic_handler
         }
     })
 }

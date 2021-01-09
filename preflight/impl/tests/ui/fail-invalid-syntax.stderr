@@ -1,13 +1,17 @@
 error: expected `,`
- --> $DIR/fail-invalid-syntax.rs:5:32
+ --> $DIR/fail-invalid-syntax.rs:8:32
   |
-5 | #[avionics_harness(ooooo , eee / 0099 | gee)]
+8 | #[avionics_harness(ooooo , eee / 0099 | gee)]
   |                                ^
 
 warning: unused imports: `Avionics`, `Control`, `Sensors`
- --> $DIR/fail-invalid-syntax.rs:1:40
+ --> $DIR/fail-invalid-syntax.rs:3:40
   |
-1 | use preflight_impl::{avionics_harness, Avionics, Control, Sensors};
+3 | use preflight_impl::{avionics_harness, Avionics, Control, Sensors};
   |                                        ^^^^^^^^  ^^^^^^^  ^^^^^^^
   |
   = note: `#[warn(unused_imports)]` on by default
+
+error: `#[panic_handler]` function required, but not found
+
+error: language item required, but not found: `eh_personality`
