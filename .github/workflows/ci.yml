@@ -53,6 +53,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           args: --all-features
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install minimal stable
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - uses: Swatinem/rust-cache@v1
+
+      - uses: actions/checkout@v2
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+
   rustfmt:
     name: Rust Format
     runs-on: ubuntu-latest

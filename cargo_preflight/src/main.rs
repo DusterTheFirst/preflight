@@ -62,7 +62,7 @@ fn test_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
         println!(
             "{:?}",
             Length::<SI<f64>, _>::new::<meter>(0.0f64)
-                .into_format_args(meter, cargo_preflight::uom::fmt::DisplayStyle::Description),
+                .into_format_args(meter, preflight::uom::fmt::DisplayStyle::Description),
         );
 
         let result = harness.guide(Sensors {
@@ -74,7 +74,7 @@ fn test_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
             angular_velocity: Vector3::zero(),
             magnetic_field: Vector3::zero(),
         });
-        dbg!(&result);
+        dbg!(&result); // TODO:
     }
 
     Ok(true)
