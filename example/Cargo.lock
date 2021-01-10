@@ -8,9 +8,9 @@ checksum = "cdb031dd78e28731d87d56cc8ffef4a8f36ca26c38fe2de700543e627f8a464a"
 
 [[package]]
 name = "darling"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dbffa8f8e38810422f320ca457a93cf1cd0056dc9c06c556b867558e0d471463"
+checksum = "11947000d710ff98138229f633039982f0fef2d9a3f546c21d610fee5f8631d5"
 dependencies = [
  "darling_core",
  "darling_macro",
@@ -18,9 +18,9 @@ dependencies = [
 
 [[package]]
 name = "darling_core"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06e172685d94b7b83800e3256a63261537b9d6129e10f21c8e13ddf9dba8c64d"
+checksum = "ae53b4d9cc89c40314ccf2bf9e6ff1eb19c31e3434542445a41893dbf041aec2"
 dependencies = [
  "fnv",
  "ident_case",
@@ -32,9 +32,9 @@ dependencies = [
 
 [[package]]
 name = "darling_macro"
-version = "0.11.0"
+version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0618ac802792cebd1918ac6042a6ea1eeab92db34b35656afaa577929820788"
+checksum = "e9cd9ac4d50d023af5e710cae1501afb063efcd917bd3fc026e8ed6493cc9755"
 dependencies = [
  "darling_core",
  "quote",
@@ -45,7 +45,7 @@ dependencies = [
 name = "fly_example"
 version = "0.1.0"
 dependencies = [
- "preflight_impl",
+ "preflight",
 ]
 
 [[package]]
@@ -70,7 +70,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "preflight_impl"
+name = "preflight"
 version = "0.1.0"
 dependencies = [
  "preflight_macros",

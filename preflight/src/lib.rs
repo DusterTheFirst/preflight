@@ -13,6 +13,9 @@ use uom::si::{
     acceleration, angle, angular_velocity, length, magnetic_flux_density, Dimension, SI,
 };
 
+pub mod abi;
+
+/// Generic [`uom`] quantity using f64 as the storage type
 pub type Quantity<T> = uom::si::Quantity<T, SI<f64>, f64>;
 
 #[repr(C)]
@@ -34,6 +37,7 @@ pub struct Sensors {
     pub magnetic_field: Vector3<magnetic_flux_density::Dimension>,
 }
 
+/// A vector representing a quantity in 3 dimensional space
 #[repr(C)]
 pub struct Vector3<T: Dimension + ?Sized> {
     x: Quantity<T>,

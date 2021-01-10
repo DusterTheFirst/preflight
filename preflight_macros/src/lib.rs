@@ -6,7 +6,6 @@ use proc_macro::TokenStream;
 use syn::{parse_macro_input, AttributeArgs, ItemImpl};
 
 mod avionics;
-mod util;
 
 #[proc_macro_attribute]
 pub fn avionics_harness(args: TokenStream, input: TokenStream) -> TokenStream {

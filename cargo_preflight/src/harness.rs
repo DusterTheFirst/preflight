@@ -1,27 +1,28 @@
 use core::panic::PanicInfo;
 use std::{marker::PhantomData, mem::MaybeUninit, path::Path, sync::RwLock};
 
-use dlopen::wrapper::{Container, WrapperApi};
+use dlopen::symbor::{Container, Ref, SymBorApi, Symbol};
 use lazy_static::lazy_static;
-use preflight::{Avionics, Control, Sensors};
+use preflight::{
+    abi::{AvionicsGuide, SetPanicCallback},
+    Avionics, Control, Sensors,
+};
 
 use crate::{args::PanicHandleArguments, panic::panic_handle};
 
-type PanicCallback = fn(panic_info: &PanicInfo, avionics_state: &dyn Avionics);
-
-#[derive(WrapperApi)]
-struct HarnessImpl {
+#[derive(SymBorApi)]
+struct HarnessImpl<'a> {
     /// The callback into the avionics to request a control signal for guidance
-    avionics_guide: fn(sensors: &Sensors) -> Option<Control>,
+    avionics_guide: Symbol<'a, AvionicsGuide>,
     /// A flag to ensure that the shared object was created with preflight
     #[dlopen_name = "__PREFLIGHT"]
-    preflight: &'static bool,
+    preflight: Ref<'a, bool>,
     /// Method to set the panic callback in order to be able to handle avionic panics
-    set_panic_callback: fn(callback: PanicCallback) -> Option<PanicCallback>,
+    set_panic_callback: Symbol<'a, SetPanicCallback>,
 }
 
 pub struct AvionicsHarness<P: AvionicsHarnessState> {
-    harness: Container<HarnessImpl>,
+    harness: Container<HarnessImpl<'static>>,
     _panic: PhantomData<P>,
 }
 
@@ -49,7 +50,7 @@ impl AvionicsHarness<PanicHang> {
         #[allow(unsafe_code)]
         let harness: Container<HarnessImpl> = unsafe { Container::load(so) }?;
 
-        if *harness.preflight() {
+        if *harness.preflight {
             Ok(Some(AvionicsHarness {
                 harness,
                 _panic: PhantomData,
@@ -67,15 +68,14 @@ impl AvionicsHarness<PanicHang> {
 
         *PANIC_ARGS.write().unwrap() = args;
 
-        self.harness
-            .set_panic_callback(|panic_info: &PanicInfo, avionics: &dyn Avionics| {
-                panic_handle(
-                    panic_info,
-                    avionics,
-                    &LAST_SENSORS.read().unwrap(),
-                    &PANIC_ARGS.read().unwrap(),
-                );
-            });
+        (self.harness.set_panic_callback)(|panic_info: &PanicInfo, avionics: &dyn Avionics| {
+            panic_handle(
+                panic_info,
+                avionics,
+                &LAST_SENSORS.read().unwrap(),
+                &PANIC_ARGS.read().unwrap(),
+            );
+        });
 
         AvionicsHarness {
             _panic: PhantomData,
@@ -89,6 +89,6 @@ impl AvionicsHarness<PanicCaught> {
     pub fn guide(&mut self, sensors: Sensors) -> Option<Control> {
         *LAST_SENSORS.write().unwrap() = sensors;
 
-        self.harness.avionics_guide(&LAST_SENSORS.read().unwrap())
+        (self.harness.avionics_guide)(&LAST_SENSORS.read().unwrap())
     }
 }

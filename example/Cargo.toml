@@ -10,10 +10,10 @@ crate-type = ["staticlib"]
 [workspace]
 
 [dependencies]
-preflight = { path = "../preflight/impl" }
+preflight = { path = "../preflight" }
 
-# [profile.dev]
-# panic = "abort"
+[profile.dev]
+panic = "abort"
 
-# [profile.release]
-# panic = "abort"
+[profile.release]
+panic = "abort"

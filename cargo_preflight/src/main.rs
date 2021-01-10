@@ -3,11 +3,12 @@
 #[macro_use]
 extern crate dlopen_derive;
 
-use std::io;
+use std::{io, pin::Pin};
 
 use anyhow::{anyhow, Context, Result};
 use args::{CargoArguments, CargoSpawnedArguments, PreflightCommand};
 use cargo::{build_artifact, get_host_target, get_metadata};
+use dlopen::symbor::Library;
 use harness::{AvionicsHarness, PanicCaught, PanicHang};
 use preflight::{
     uom::si::{

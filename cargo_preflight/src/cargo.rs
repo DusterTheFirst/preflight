@@ -67,11 +67,12 @@ pub fn build_artifact<'a>(
                 if cargo_args.release { "--release" } else { "" },
                 "--",
                 "--crate-type=dylib",
+                "--cfg=preflight",
             ]
             .iter()
             .filter(|x| !x.is_empty()),
         )
-        .env("__PREFLIGHT", "testing")
+        .env("__PREFLIGHT", "")
         .spawn()
         .context("`cargo` failed to run to completion")?;
 

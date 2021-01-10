@@ -1,5 +1,3 @@
-#![no_std]
-
 use preflight::{avionics_harness, Avionics, Control, Sensors};
 
 #[derive(Debug)]
