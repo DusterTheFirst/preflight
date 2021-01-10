@@ -1,0 +1,5 @@
+error: header `Thrust (N)` at position 1 does not match expected `h`
+  --> $DIR/fail-invalid-type.rs:10:16
+   |
+10 | #[table(file = "../../../assets/motors/Estes_C6.csv", st = "RocketEngine")]
+   |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

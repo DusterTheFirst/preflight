@@ -13,7 +13,7 @@ mod util;
 pub fn derive_interpolated_data_table(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
-    match dbg!(FromDeriveInput::from_derive_input(&dbg!(input))) {
+    match FromDeriveInput::from_derive_input(&input) {
         Err(err) => err.write_errors(),
         Ok(args) => {
             interpolated_data_table::derive(args).unwrap_or_else(|err| err.to_compile_error())

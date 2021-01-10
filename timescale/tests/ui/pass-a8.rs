@@ -8,7 +8,7 @@ pub struct RocketEngine {
 }
 
 #[derive(InterpolatedDataTable)]
-#[table(file = "motors/Estes_A8.csv", st = RocketEngine)]
+#[table(file = "../../../assets/motors/Estes_A8.csv", st = "RocketEngine")]
 pub struct EstesA8;
 
 fn main() {}

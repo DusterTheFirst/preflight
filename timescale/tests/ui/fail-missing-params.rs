@@ -1,4 +1,3 @@
-use lerp::Lerp;
 use timescale::InterpolatedDataTable;
 
 #[derive(InterpolatedDataTable)]

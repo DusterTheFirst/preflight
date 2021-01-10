@@ -1,0 +1,15 @@
+error: Missing field `st`
+ --> $DIR/fail-missing-params.rs:3:10
+  |
+3 | #[derive(InterpolatedDataTable)]
+  |          ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)
+
+error: Missing field `file`
+ --> $DIR/fail-missing-params.rs:3:10
+  |
+3 | #[derive(InterpolatedDataTable)]
+  |          ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: this error originates in a derive macro (in Nightly builds, run with -Z macro-backtrace for more info)

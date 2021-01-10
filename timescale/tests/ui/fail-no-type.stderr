@@ -1,0 +1,5 @@
+error: struct `NotExist` does not derive TimescaleData
+ --> $DIR/fail-no-type.rs:4:60
+  |
+4 | #[table(file = "../../../assets/motors/Estes_C6.csv", st = "NotExist")]
+  |                                                            ^^^^^^^^^^

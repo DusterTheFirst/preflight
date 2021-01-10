@@ -31,7 +31,7 @@ pub fn derive(
     if !csv_path.exists() {
         return Err(Error::new(
             file.span(),
-            format!("File `{}` does not exist", csv_path.to_string_lossy()),
+            format!("`{}` does not exist", csv_path.to_string_lossy()),
         ));
     }
 
