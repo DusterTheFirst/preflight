@@ -18,10 +18,7 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --release --all-features
+      - run: cargo doc --release --all-features
 
       - run: echo "<meta http-equiv=\"refresh\" content=\"0; url=https://dusterthefirst.github.io/preflight/preflight\" />" > target/doc/index.html
       
@@ -67,9 +64,7 @@ jobs:
 
       - uses: actions/checkout@v2
 
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
+      - run: cargo test
 
   clippy-example:
     name: Clippy Example
@@ -110,7 +105,8 @@ jobs:
       - uses: actions/checkout@v2
 
       - name: rustfmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
+
+      - name: rustfmt Example
+        run: cargo fmt --all -- --check
+        working-directory: example

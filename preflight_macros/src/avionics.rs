@@ -1,7 +1,7 @@
 use darling::FromMeta;
 use proc_macro2::TokenStream;
 use quote::{quote, quote_spanned};
-use syn::{Error, ItemImpl, Result, spanned::Spanned};
+use syn::{spanned::Spanned, Error, ItemImpl, Result};
 
 #[derive(Debug, FromMeta)]
 pub struct AvionicsParameters {
@@ -19,7 +19,6 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         let (invert, trait_, _) = &trait_
             .as_ref()
             .ok_or_else(|| Error::new(input.span(), "no trait was found to implement"))?;
-
 
         if !trait_.is_ident("Avionics") {
             return Err(Error::new(
