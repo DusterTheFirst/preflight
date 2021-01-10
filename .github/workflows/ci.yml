@@ -109,7 +109,7 @@ jobs:
       - name: Install just
         run: curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to .
 
-      - run: just preflight-example check
+      - run: ./just preflight-example check
 
   rustfmt:
     name: Rust Format
