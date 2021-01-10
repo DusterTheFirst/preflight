@@ -113,7 +113,7 @@ pub enum Control {
     /// A signal to the underlying flight system that the avionics was unable to
     /// compute a valid control signal for the time. The flight system will normally
     /// choose to request another guidance control immediately.
-    RecoverableFailure
+    RecoverableFailure,
 }
 
 /// Underlying cause for an abort
@@ -124,7 +124,7 @@ pub enum Control {
 #[derive(Debug)]
 pub enum AbortCause {
     /// TODO: No abort causes exist currently
-    TODO
+    TODO,
 }
 
 /// A hardware agnostic guidance signal
