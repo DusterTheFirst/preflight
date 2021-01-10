@@ -1,17 +1,13 @@
 error: expected a trait implementation of `Avionics`
-  --> $DIR/fail-wrong-impl.rs:17:6
+  --> $DIR/fail-wrong-impl.rs:15:6
    |
-17 | impl Cool for Controller {}
+15 | impl Cool for Controller {}
    |      ^^^^
 
 warning: unused imports: `Avionics`, `Control`, `Sensors`
- --> $DIR/fail-wrong-impl.rs:3:40
+ --> $DIR/fail-wrong-impl.rs:1:35
   |
-3 | use preflight::{avionics_harness, Avionics, Control, Sensors};
-  |                                        ^^^^^^^^  ^^^^^^^  ^^^^^^^
+1 | use preflight::{avionics_harness, Avionics, Control, Sensors};
+  |                                   ^^^^^^^^  ^^^^^^^  ^^^^^^^
   |
   = note: `#[warn(unused_imports)]` on by default
-
-error: `#[panic_handler]` function required, but not found
-
-error: language item required, but not found: `eh_personality`
