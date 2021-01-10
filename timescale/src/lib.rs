@@ -4,8 +4,8 @@
 #![forbid(unsafe_code)]
 
 pub use lerp::Lerp;
-pub use timescale_macros::*;
 use serde::Serialize;
+pub use timescale_macros::*;
 
 /// Trait to allow data points to be expanded into their timescaled and serializable counterpart
 /// by appending the time
