@@ -43,9 +43,7 @@ impl InterpolatedDataLayout {
 
     /// Name of the time column
     pub fn time_column_name(&self) -> &str {
-        self.time_column_rename
-            .as_deref()
-            .unwrap_or("Time (s)")
+        self.time_column_rename.as_deref().unwrap_or("Time (s)")
     }
 }
 
