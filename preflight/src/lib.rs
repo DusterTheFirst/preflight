@@ -1,8 +1,8 @@
 //! Utilities to create and test hardware agnostic flight systems with little friction
 //!
-//! This preflight crate goes hand and hand with the [`cargo_preflight`] cargo
+//! This preflight crate goes hand and hand with the `cargo_preflight` cargo
 //! subcommand. Alone, this crate will produce a stable, plugable interface for
-//! a flight computer to link to. When paired with the [`cargo_preflight`] command,
+//! a flight computer to link to. When paired with the `cargo_preflight` command,
 //! users are able to run the flight systems through rigorous simulations and
 //! tests to verify their integrity.
 

@@ -1,11 +1,11 @@
-use super::interpolated_data::INTERPOLATED_DATA;
-use crate::derive::interpolated_data::InterpolatedData;
 use csv::Reader;
 use darling::FromDeriveInput;
 use proc_macro2::{Span, TokenStream};
 use quote::quote;
 use std::path::PathBuf;
 use syn::{spanned::Spanned, Error, Ident, LitFloat, LitStr, Path};
+
+use crate::store::{InterpolatedDataLayoutColumn, INTERPOLATED_DATA_STORE};
 
 /// Arguments to the `derive(InterpolatedDataTable)` macro
 #[derive(Debug, FromDeriveInput)]
@@ -31,7 +31,7 @@ pub fn derive(
     if !csv_path.exists() {
         return Err(Error::new(
             file.span(),
-            format!("`{}` does not exist", csv_path.to_string_lossy()),
+            format!("{:?} does not exist", csv_path),
         ));
     }
 
@@ -43,29 +43,31 @@ pub fn derive(
         .ident;
 
     // Load in the metadata from the struct's csv file
-    let (time_column_name, fields_type, fields, wanted_headers) = {
+    let (time_column_name, data_type, fields, wanted_headers) = {
         // Read in the fields from the shared data
-        let timescale_data = (*INTERPOLATED_DATA).read().unwrap();
-        let InterpolatedData { fields, rename, ty } = timescale_data
+        let timescale_data = (*INTERPOLATED_DATA_STORE).read().unwrap();
+        let data_layout = timescale_data
             .get(&struct_name.to_string())
             .ok_or_else(|| {
                 Error::new(
                     st.span(),
                     format!("struct `{}` does not derive TimescaleData", struct_name),
                 )
-            })?
-            .clone();
+            })?;
 
         (
-            rename,
-            Ident::new(&ty, Span::call_site()),
-            fields
+            data_layout.time_column_name().to_owned(),
+            data_layout.data_type(),
+            data_layout
+                .columns
                 .iter()
-                .map(|x| Ident::new(&x.name, Span::call_site()))
+                .map(InterpolatedDataLayoutColumn::field)
                 .collect::<Vec<_>>(),
-            fields
+            data_layout
+                .columns
                 .iter()
-                .map(|x| x.rename.as_ref().unwrap_or(&x.name).clone())
+                .map(InterpolatedDataLayoutColumn::column_name)
+                .map(str::to_owned)
                 .collect::<Vec<_>>(),
         )
     };
@@ -73,7 +75,7 @@ pub fn derive(
     let map_csv_error = |e: csv::Error| -> Error {
         Error::new(
             file.span(),
-            format!("failed to csv file `{}`: {}", csv_path.to_string_lossy(), e),
+            format!("failed to csv file {:?}: {}", csv_path, e),
         )
     };
 
@@ -82,40 +84,23 @@ pub fn derive(
     let mut csv_headers = csv_reader.headers().map_err(map_csv_error)?.into_iter();
 
     // Ensure the time header/column is present
-    if let Some(time_header) = time_column_name.as_ref() {
-        if let Some(h) = csv_headers.next() {
-            if h != time_header {
-                return Err(Error::new(
-                    file.span(),
-                    format!(
-                        "expected first column `{}` as specified by the rename on `{}` but found column `{}`",
-                        time_header, struct_name, h
-                    ),
-                ));
-            }
-        } else {
+    if let Some(h) = csv_headers.next() {
+        if h != time_column_name {
             return Err(Error::new(
                 file.span(),
                 format!(
-                    "expected first column `{}` as specified by the rename on `{}` but found nothing",
-                    time_header, struct_name
+                    "expected first column `{}` but found column `{}`",
+                    time_column_name, h
                 ),
             ));
-        }
-    } else if let Some(h) = csv_headers.next() {
-        if "Time (s)" != h {
-            return Err(Error::new(
-                    file.span(),
-                    format!(
-                        "expected first column `Time (s)` but found `{}`\n\n\t\tnote = you can override this column name using the `#[timescale(rename = \"new name\")]` attribute on the struct `{}`",
-                        h, struct_name
-                    ),
-                ));
         }
     } else {
         return Err(Error::new(
             file.span(),
-            "expected first column `Time (s)` but found nothing",
+            format!(
+                "expected first column `{}` but found nothing",
+                time_column_name,
+            ),
         ));
     }
 
@@ -169,7 +154,7 @@ pub fn derive(
                 // Read the record as a lit float
                 let mut record = record
                     .iter()
-                    .map(|x| LitFloat::new(&format!("{}{}", x, fields_type), Span::call_site()));
+                    .map(|x| LitFloat::new(&format!("{}{}", x, data_type), Span::call_site()));
 
                 (
                     // The first record is the time
@@ -260,14 +245,18 @@ pub fn derive(
         lerps
     };
 
+    let csv_path = csv_path.to_string_lossy();
+
     Ok(quote! {
         const _: () = {
             use timescale::InterpolatedDataPoint;
 
+            include_bytes!(#csv_path);
+
             #[automatically_derived]
             impl InterpolatedDataTable for #ident {
                 type Datapoint = #st;
-                type Time = #fields_type;
+                type Time = #data_type;
 
                 const MIN: Self::Time = #low_value;
                 const MAX: Self::Time = #high_value;

@@ -12,5 +12,11 @@ proc-macro2 = "1.0"
 quote = "1.0"
 syn = { version = "1.0", features = ["full", "extra-traits"] }
 
+[dev-dependencies]
+timescale = { path = "../timescale"}
+lerp = { branch = "derive_macro", git = "https://github.com/DusterTheFirst/lerp-rs/", features = ["derive"] }
+serde = "1.0"
+nalgebra = "0.24"
+
 [lib]
 proc-macro = true

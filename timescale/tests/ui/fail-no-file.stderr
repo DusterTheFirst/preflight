@@ -1,4 +1,4 @@
-error: `$WORKSPACE/target/tests/timescale/../../../assets/motors/ghajkhgdaskjdgh.csv` does not exist
+error: "$WORKSPACE/target/tests/timescale/../../../assets/motors/ghajkhgdaskjdgh.csv" does not exist
   --> $DIR/fail-no-file.rs:11:16
    |
 11 | #[table(file = "../../../assets/motors/ghajkhgdaskjdgh.csv", st = "RocketEngine")]

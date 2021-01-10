@@ -4,10 +4,13 @@
 #![forbid(unsafe_code)]
 
 pub use lerp::Lerp;
+pub use timescale_macros::*;
 use serde::Serialize;
 
 /// Trait to allow data points to be expanded into their timescaled and serializable counterpart
 /// by appending the time
+///
+/// This trait is useful for writing timescale data loggers
 pub trait ToTimescale {
     /// The timescale data that will be produced
     type Timescale: Serialize;
@@ -65,13 +68,6 @@ pub trait InterpolatedDataTable: Send + Sync + 'static {
         }
     }
 }
-
-#[allow(unused_imports)]
-#[macro_use]
-extern crate timescale_macros;
-
-#[doc(hidden)]
-pub use timescale_macros::*;
 
 #[cfg(test)]
 mod test {
