@@ -18,8 +18,8 @@ use uom::si::{Dimension, SI, acceleration, angle, angular_velocity, length, magn
 
 pub mod abi;
 
-/// Generic [`uom`] quantity using f64 as the storage type
-pub type Quantity<T> = uom::si::Quantity<T, SI<f64>, f64>;
+/// Generic [`uom`] quantity using f32 as the storage type
+pub type Quantity<T> = uom::si::Quantity<T, SI<f32>, f32>;
 
 /// Generic sensor values that are collected from the flight hardware which would
 /// be useful to calculate position and velocity.
