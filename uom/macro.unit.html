@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `unit` macro in crate `uom`."><meta name="keywords" content="rust, rustlang, rust-lang, unit"><title>uom::unit - Rust</title><link rel="stylesheet" type="text/css" href="../normalize.css"><link rel="stylesheet" type="text/css" href="../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../ayu.css" disabled ><script id="default-settings"></script><script src="../storage.js"></script><noscript><link rel="stylesheet" href="../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../down-arrow.svg");}</style></head><body class="rustdoc macro"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../uom/index.html'><div class='logo-container rust-logo'><img src='../rust-logo.png' alt='logo'></div></a><div class="sidebar-elems"><p class="location"><a href="index.html">uom</a></p><script>window.sidebarCurrent = {name: "unit", ty: "macro", relpath: ""};</script><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
+                <a id="settings-menu" href="../settings.html"><img src="../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../src/uom/unit.rs.html#105-274" title="goto source code">[src]</a></span><span class="in-band">Macro <a href="index.html">uom</a>::<wbr><a class="macro" href="">unit</a></span></h1><div class="docblock type-decl hidden-by-usual-hider"><div class="example-wrap"><pre class="rust macro">
+<span class="macro">macro_rules</span><span class="macro">!</span> <span class="ident">unit</span> {
+    (
+        <span class="ident">system</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">system</span>:<span class="ident">path</span>;
+        <span class="ident">quantity</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">quantity</span>:<span class="ident">path</span>;
+
+        $($(<span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">unit_attr</span>:<span class="ident">meta</span>]</span>)<span class="op">*</span> @<span class="macro-nonterminal">$</span><span class="macro-nonterminal">unit</span>:<span class="ident">ident</span>: $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">conversion</span>:<span class="ident">expr</span>),<span class="op">+</span>;
+            <span class="macro-nonterminal">$</span><span class="macro-nonterminal">abbreviation</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">singular</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">plural</span>:<span class="ident">expr</span>;)<span class="op">+</span>
+    ) <span class="op">=</span><span class="op">&gt;</span> { ... };
+    (
+        @<span class="ident">units</span> $($(<span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">unit_attr</span>:<span class="ident">meta</span>]</span>)<span class="op">*</span> @<span class="macro-nonterminal">$</span><span class="macro-nonterminal">unit</span>:<span class="ident">ident</span>: $(<span class="macro-nonterminal">$</span><span class="macro-nonterminal">conversion</span>:<span class="ident">expr</span>),<span class="op">+</span>;
+            <span class="macro-nonterminal">$</span><span class="macro-nonterminal">abbreviation</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">singular</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="macro-nonterminal">plural</span>:<span class="ident">expr</span>;)<span class="op">+</span>
+    ) <span class="op">=</span><span class="op">&gt;</span> { ... };
+    (@<span class="ident">unit</span> $(<span class="attribute">#[<span class="macro-nonterminal">$</span><span class="macro-nonterminal">unit_attr</span>:<span class="ident">meta</span>]</span>)<span class="op">+</span> @<span class="macro-nonterminal">$</span><span class="macro-nonterminal">unit</span>:<span class="ident">ident</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">plural</span>:<span class="ident">expr</span>) <span class="op">=</span><span class="op">&gt;</span> { ... };
+    (@<span class="ident">unit</span> @<span class="macro-nonterminal">$</span><span class="macro-nonterminal">unit</span>:<span class="ident">ident</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">plural</span>:<span class="ident">expr</span>) <span class="op">=</span><span class="op">&gt;</span> { ... };
+    (@<span class="ident">coefficient</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">factor</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="kw">const</span>:<span class="macro-nonterminal">expr</span>) <span class="op">=</span><span class="op">&gt;</span> { ... };
+    (@<span class="ident">coefficient</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">factor</span>:<span class="ident">expr</span>) <span class="op">=</span><span class="op">&gt;</span> { ... };
+    (@<span class="ident">constant</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">op</span>:<span class="ident">ident</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">factor</span>:<span class="ident">expr</span>, <span class="macro-nonterminal">$</span><span class="kw">const</span>:<span class="macro-nonterminal">expr</span>) <span class="op">=</span><span class="op">&gt;</span> { ... };
+    (@<span class="ident">constant</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">op</span>:<span class="ident">ident</span> <span class="macro-nonterminal">$</span><span class="macro-nonterminal">factor</span>:<span class="ident">expr</span>) <span class="op">=</span><span class="op">&gt;</span> { ... };
+}</pre></div>
+</div><div class="docblock"><p>Macro to implement a set of <a href="http://jcgm.bipm.org/vim/en/1.9.html">measurement units</a>. Note that units manually defined
+using this macro will not be included in the quantity unit enum or associated functions, or in
+the <code>FromStr</code> implementation. Using this macro will create submodules for the underlying storage
+types that are enabled (e.g. <code>mod f32</code>). <code>@...</code> match arms are considered private.</p>
+<p>When using the pre-built <a href="si">SI</a> system included with <code>uom</code> this macro allows for new units to
+quickly be defined without requiring a release. <a href="pr">Pull requests</a> to add new units upstream
+area always greatly appreciated.</p>
+<ul>
+<li><code>$system</code>: Path to the module where the <a href="macro.system.html"><code>system!</code></a> macro was run (e.g.
+<code>uom::si</code>).</li>
+<li><code>quantity</code>: Path to the module where the <a href="macro.quantity.html"><code>quantity!</code></a> macro was run
+(e.g. <code>uom::si::length</code>).</li>
+<li><code>$unit</code>: Unit name (e.g. <code>meter</code>, <code>foot</code>).</li>
+<li><code>$conversion</code>: Conversion (coefficient and constant factor) from the unit to the base unit of
+the quantity (e.g. <code>3.048_E-1</code> to convert <code>foot</code> to <code>meter</code>. <code>1.0_E0, 273.15_E0</code> to convert
+<code>celsius</code> to <code>kelvin</code>.). The coefficient is required and the constant factor is optional.
+Note that using a unit with a non-zero constant factor is not currently supported as a base
+unit.</li>
+<li><code>$abbreviation</code>: Unit abbreviation (e.g. <code>&quot;m&quot;</code>).</li>
+<li><code>$singular</code>: Singular unit description (e.g. <code>&quot;meter&quot;</code>).</li>
+<li><code>$plural</code>: Plural unit description (e.g. <code>&quot;meters&quot;</code>).</li>
+</ul>
+<p>An example invocation is given below to add kilometers to length in a meter-kilogram-second
+system. The <code>#[macro_use]</code> attribute must be used when including the <code>uom</code> crate to make the
+<code>unit!</code> macro available.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">uom</span>;
+
+<span class="macro">unit</span><span class="macro">!</span> {
+    <span class="ident">system</span>: <span class="kw">crate</span>::<span class="ident">mks</span>;
+    <span class="ident">quantity</span>: <span class="kw">crate</span>::<span class="ident">mks</span>::<span class="ident">length</span>;
+
+    @<span class="ident">kilometer</span>: <span class="number">1.0E-03</span>; <span class="string">&quot;km&quot;</span>, <span class="string">&quot;kilometer&quot;</span>, <span class="string">&quot;kilometers&quot;</span>;
+}</pre></div>
+</div></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../";window.currentCrate = "uom";</script><script src="../main.js"></script><script defer src="../search-index.js"></script></body></html>

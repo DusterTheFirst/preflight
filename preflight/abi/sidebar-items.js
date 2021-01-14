@@ -1,0 +1,1 @@
+initSidebarItems({"type":[["AvionicsGuide","The entry point into the user's avionics"],["PanicCallback","Callback that is called when the driven avionics panics."],["SetPanicCallback","Function exposed to the preflight runner that can set the [`PanicCallback`]"]]});

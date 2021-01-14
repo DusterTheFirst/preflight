@@ -1,0 +1,5 @@
+(function() {var implementors = {};
+implementors["anyhow"] = [{"text":"impl AsRef&lt;dyn Error + 'static + Sync + Send&gt; for Error","synthetic":false,"types":[]},{"text":"impl AsRef&lt;dyn Error + 'static&gt; for Error","synthetic":false,"types":[]}];
+implementors["bstr"] = [{"text":"impl AsRef&lt;[u8]&gt; for BString","synthetic":false,"types":[]},{"text":"impl AsRef&lt;BStr&gt; for BString","synthetic":false,"types":[]},{"text":"impl AsRef&lt;[u8]&gt; for BStr","synthetic":false,"types":[]},{"text":"impl AsRef&lt;BStr&gt; for [u8]","synthetic":false,"types":[]},{"text":"impl AsRef&lt;BStr&gt; for str","synthetic":false,"types":[]}];
+implementors["darling_core"] = [{"text":"impl AsRef&lt;Ident&gt; for IdentString","synthetic":false,"types":[]},{"text":"impl AsRef&lt;str&gt; for IdentString","synthetic":false,"types":[]},{"text":"impl&lt;T&gt; AsRef&lt;T&gt; for SpannedValue&lt;T&gt;","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

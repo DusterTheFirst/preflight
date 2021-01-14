@@ -1,0 +1,1 @@
+initSidebarItems({"attr":[["avionics_harness","Harness to connect hardware agnostic flight systems to firmware or to the `preflight_cargo` utility"]]});

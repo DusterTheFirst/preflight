@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `WrapperMultiApi` trait in crate `dlopen`."><meta name="keywords" content="rust, rustlang, rust-lang, WrapperMultiApi"><title>dlopen::wrapper::WrapperMultiApi - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../light.css"  id="themeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css" disabled ><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled ><script id="default-settings"></script><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="icon" type="image/svg+xml" href="../../favicon.svg">
+<link rel="alternate icon" type="image/png" href="../../favicon-16x16.png">
+<link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc trait"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../dlopen/index.html'><div class='logo-container rust-logo'><img src='../../rust-logo.png' alt='logo'></div></a><p class="location">Trait WrapperMultiApi</p><div class="sidebar-elems"><div class="block items"><a class="sidebar-title" href="#implementors">Implementors</a></div><p class="location"><a href="../index.html">dlopen</a>::<wbr><a href="index.html">wrapper</a></p><script>window.sidebarCurrent = {name: "WrapperMultiApi", ty: "trait", relpath: ""};</script><script defer src="sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!" aria-haspopup="menu"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices" role="menu"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" disabled autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><span class="help-button">?</span>
+                <a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class="fqn"><span class="out-of-band"><span id="render-detail"><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class="inner">&#x2212;</span>]</a></span><a class="srclink" href="../../src/dlopen/wrapper/multi_api.rs.html#72" title="goto source code">[src]</a></span><span class="in-band">Trait <a href="../index.html">dlopen</a>::<wbr><a href="index.html">wrapper</a>::<wbr><a class="trait" href="">WrapperMultiApi</a></span></h1><div class="docblock type-decl hidden-by-usual-hider"><pre class="rust trait">pub trait WrapperMultiApi: <a class="trait" href="../../dlopen/wrapper/trait.WrapperApi.html" title="trait dlopen::wrapper::WrapperApi">WrapperApi</a> { }</pre></div><div class="docblock"><p>Allows creation of complex, optional APIs.</p>
+<p>Real life dynamic link libraries often come in multiple versions. Sometimes additional functions
+are added for the specific operating system, sometimes the library gets extended and new versions
+export more symbols. Often the API can have multiple versions. This trait helps creating
+library APIs with multiple optional parts.</p>
+<p><code>WrapperMultiApi</code> is intended to be used together with the derive macro. You should create a new
+structure where all fields implement the <code>WrapperApi</code> trait (this includes <code>Option&lt;T&gt;</code> where
+<code>T</code> implements <code>WrapperApi</code>). The derive macro will generate required implementation.</p>
+<p><strong>Note</strong>: <code>WrapperMultiApi</code> should only be used together with <code>Container</code> structure, never to create
+a standalone object. API and library handle need to be kept together to prevent dangling symbols.</p>
+
+<div class="example-wrap"><pre class="rust rust-example-rendered">
+<span class="attribute">#[<span class="ident">macro_use</span>]</span>
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">dlopen_derive</span>;
+<span class="kw">extern</span> <span class="kw">crate</span> <span class="ident">dlopen</span>;
+<span class="kw">use</span> <span class="ident">dlopen</span>::<span class="ident">wrapper</span>::{<span class="ident">Container</span>, <span class="ident">WrapperApi</span>, <span class="ident">WrapperMultiApi</span>};
+
+<span class="comment">//Define 3 APIs:</span>
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">WrapperApi</span>)]</span>
+<span class="kw">struct</span> <span class="ident">Obligatory</span>{
+    <span class="ident">some_fun</span>: <span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span>()
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">WrapperApi</span>)]</span>
+<span class="kw">struct</span> <span class="ident">Optional1</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>{
+    <span class="ident">static_val</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">i32</span>
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">WrapperApi</span>)]</span>
+<span class="kw">struct</span> <span class="ident">Optional2</span>{
+   <span class="ident">another_fun</span>: <span class="kw">unsafe</span> <span class="kw">extern</span> <span class="string">&quot;C&quot;</span> <span class="kw">fn</span>()
+}
+
+<span class="comment">//Now define a multi wrapper that wraps sub APIs into one bigger API.</span>
+<span class="comment">//This example assumes that the first API is obligatory and the other two are optional.</span>
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">WrapperMultiApi</span>)]</span>
+<span class="kw">struct</span> <span class="ident">Api</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>{
+    <span class="kw">pub</span> <span class="ident">obligatory</span>: <span class="ident">Obligatory</span>,
+    <span class="kw">pub</span> <span class="ident">optional1</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Optional1</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">optional2</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Optional2</span><span class="op">&gt;</span>
+}
+
+<span class="kw">fn</span> <span class="ident">main</span>(){
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">container</span>: <span class="ident">Container</span><span class="op">&lt;</span><span class="ident">Api</span><span class="op">&gt;</span> <span class="op">=</span> <span class="kw">unsafe</span> {
+        <span class="ident">Container</span>::<span class="ident">load</span>(<span class="string">&quot;libexample.so&quot;</span>)
+    }.<span class="ident">expect</span>(<span class="string">&quot;Could not open library or load symbols&quot;</span>);
+
+    <span class="comment">//use obligatory API:</span>
+    <span class="kw">unsafe</span>{<span class="ident">container</span>.<span class="ident">obligatory</span>.<span class="ident">some_fun</span>()};
+
+    <span class="comment">//use first optional API:</span>
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">opt</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">optional1</span>{
+        <span class="kw">let</span> <span class="ident">_val</span> <span class="op">=</span> <span class="kw-2">*</span><span class="ident">opt</span>.<span class="ident">static_val</span>();
+    }
+
+    <span class="comment">//use second optional API:</span>
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">opt</span>) <span class="op">=</span> <span class="ident">container</span>.<span class="ident">optional2</span>{
+        <span class="kw">unsafe</span> {<span class="ident">opt</span>.<span class="ident">another_fun</span>()};
+    }
+}</pre></div>
+</div><h2 id="implementors" class="small-section-header">Implementors<a href="#implementors" class="anchor"></a></h2><div class="item-list" id="implementors-list"></div><span class="loading-content">Loading content...</span><script type="text/javascript" src="../../implementors/dlopen/wrapper/trait.WrapperMultiApi.js" async></script></section><section id="search" class="content hidden"></section><section class="footer"></section><script>window.rootPath = "../../";window.currentCrate = "dlopen";</script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

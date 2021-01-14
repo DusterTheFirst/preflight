@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["Container","Container for both a dynamic load library handle and its API."],["OptionalContainer","Container for a library handle and both obligatory and optional APIs inside one structure."]],"trait":[["WrapperApi","Trait for defining library API."],["WrapperMultiApi","Allows creation of complex, optional APIs."]]});
