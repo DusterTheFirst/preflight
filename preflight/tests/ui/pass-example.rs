@@ -9,9 +9,9 @@ impl Controller {
     }
 }
 
-#[avionics_harness(default = "Controller::new")]
+#[avionics_harness(default = "Controller::new()")]
 impl Avionics for Controller {
-    fn guide(&mut self, _: &Sensors) -> Option<Control> {
+    fn guide(&mut self, _: &Sensors) -> Control {
         todo!()
     }
 }

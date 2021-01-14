@@ -5,7 +5,7 @@ struct Controller;
 
 #[avionics_harness(ooooo , eee / 0099 | gee)]
 impl Avionics for Controller {
-    fn guide(&mut self, _: &Sensors) -> Option<Control> {
+    fn guide(&mut self, _: &Sensors) -> Control {
         todo!()
     }
 }

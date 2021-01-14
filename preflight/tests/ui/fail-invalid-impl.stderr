@@ -4,10 +4,18 @@ error: cannot negate the `Avionics` implementation
 13 | impl !Avionics for Controller {
    |      ^
 
-warning: unused imports: `Avionics`, `Control`, `Sensors`
- --> $DIR/fail-invalid-impl.rs:1:35
-  |
-1 | use preflight::{avionics_harness, Avionics, Control, Sensors};
-  |                                   ^^^^^^^^  ^^^^^^^  ^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
+error[E0658]: negative trait bounds are not yet fully implemented; use marker types for now
+  --> $DIR/fail-invalid-impl.rs:13:6
+   |
+13 | impl !Avionics for Controller {
+   |      ^^^^^^^^^
+   |
+   = note: see issue #68318 <https://github.com/rust-lang/rust/issues/68318> for more information
+
+error[E0749]: negative impls cannot have any items
+  --> $DIR/fail-invalid-impl.rs:14:5
+   |
+14 | /     fn guide(&mut self, _: &Sensors) -> Control {
+15 | |         todo!()
+16 | |     }
+   | |_____^

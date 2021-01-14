@@ -19,4 +19,4 @@ pub type PanicCallback = fn(panic_info: &PanicInfo, avionics_state: &dyn Avionic
 pub type SetPanicCallback = fn(callback: PanicCallback);
 
 /// The entry point into the user's avionics
-pub type AvionicsGuide = fn(sensors: &Sensors) -> Option<Control>;
+pub type AvionicsGuide = fn(sensors: &Sensors) -> Control;

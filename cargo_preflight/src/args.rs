@@ -4,8 +4,7 @@ use structopt::{clap::AppSettings::ColoredHelp, StructOpt};
 #[derive(StructOpt)]
 #[structopt(global_setting(ColoredHelp))]
 pub enum CargoSpawnedArguments {
-    // TODO: sounds jank
-    /// Run the preflight program
+    /// Run checks on hardware agnostic avionics
     Preflight(Arguments),
 }
 

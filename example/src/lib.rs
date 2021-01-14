@@ -1,24 +1,28 @@
 #![no_std]
 #![forbid(unsafe_code)]
 
-use preflight::{avionics_harness, Avionics, Control, Sensors};
+use preflight::{Avionics, Control, Guidance, Sensors, ThrustVector, avionics_harness, uom::si::angle::{Angle, degree}};
 
 #[derive(Debug)]
-pub struct Controller {
-    ticks: u64,
-}
+pub struct Controller;
 
 impl Controller {
     const fn new() -> Self {
-        Controller { ticks: 0 }
+        Controller
     }
 }
 
-#[avionics_harness(default = "Controller::new")]
+#[avionics_harness(default = "Controller::new()")]
 impl Avionics for Controller {
-    fn guide(&mut self, sensors: &Sensors) -> Option<Control> {
-        self.ticks += 1;
-        None
+    fn guide(&mut self, sensors: &Sensors) -> Control {
+        // Produce a sinusoidal TVC control
+
+        Control::Guidance(Guidance {
+            tvc: ThrustVector {
+                x: Angle::new::<degree>(sensors.running_time.),
+                z: Angle::new::<degree>(0.0),
+            }
+        })
         // Some(c)
         // todo!()
     }

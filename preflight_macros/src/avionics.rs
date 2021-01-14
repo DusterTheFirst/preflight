@@ -10,8 +10,8 @@ pub struct AvionicsParameters {
     no_panic: bool,
 }
 
-pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStream> {
-    let (implementation, st) = {
+pub fn harness(params: AvionicsParameters, input: &ItemImpl) -> Result<TokenStream> {
+    let st = {
         let ItemImpl {
             self_ty, trait_, ..
         } = &input;
@@ -34,7 +34,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
             ));
         }
 
-        (&input, self_ty)
+        self_ty
     };
 
     let default = {
@@ -49,9 +49,6 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         (
             quote! {
                 use preflight::abi::*;
-
-                #[no_mangle]
-                pub static __PREFLIGHT: bool = cfg!(preflight);
 
                 #[no_mangle]
                 pub static avionics_guide: AvionicsGuide = |sensors: &Sensors| unsafe {
@@ -74,7 +71,7 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
     } else {
         (
             quote! {
-                unsafe extern "C" fn avionics_guide(sensors: &Sensors) -> Option<Control> {
+                unsafe extern "C" fn avionics_guide(sensors: &Sensors) -> Control {
                     AVIONICS.guide(sensors)
                 }
             },
@@ -92,7 +89,6 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
         quote! {}
     } else {
         quote! {
-            // TODO: PUT uC IN DEEP SLEEP ON PANIC OR SMTHN or call back into c code to handle panic
             #[cfg(not(any(test, trybuild)))]
             #[panic_handler]
             fn handle_panic(_panic_info: &core::panic::PanicInfo) -> ! {
@@ -106,14 +102,15 @@ pub fn harness(params: AvionicsParameters, input: ItemImpl) -> Result<TokenStrea
     };
 
     Ok(quote! {
-        #implementation
-
         #[doc(hidden)]
         mod __PREFLIGHT {
             use super::*;
 
             #[allow(unused)]
-            static mut AVIONICS: #st = #default();
+            static mut AVIONICS: #st = #default;
+
+            #[no_mangle]
+            static __PREFLIGHT: bool = cfg!(preflight);
 
             #avionics_impl
 

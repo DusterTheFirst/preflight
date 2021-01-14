@@ -10,16 +10,11 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use core::{
-    fmt::{self, Debug, Formatter},
-    marker::PhantomData,
-};
+use core::{fmt::{self, Debug, Formatter}, marker::PhantomData};
 
 pub use preflight_macros::avionics_harness;
 pub use uom;
-use uom::si::{
-    acceleration, angle, angular_velocity, length, magnetic_flux_density, Dimension, SI,
-};
+use uom::si::{Dimension, SI, acceleration, angle, angular_velocity, length, magnetic_flux_density, time};
 
 pub mod abi;
 
@@ -31,6 +26,8 @@ pub type Quantity<T> = uom::si::Quantity<T, SI<f64>, f64>;
 #[repr(C)]
 #[derive(Debug)]
 pub struct Sensors {
+    // TODO: MAKE THESE MORE GENERIC
+    // TODO: LESS JANK VECTORS https://github.com/iliekturtles/uom/issues/231
     /// Calculated altitude
     pub altitude: Quantity<length::Dimension>,
     /// Three axis of linear acceleration data (acceleration minus gravity) in m/s^2
@@ -45,6 +42,8 @@ pub struct Sensors {
     pub angular_velocity: Vector3<angular_velocity::Dimension>,
     /// Three axis of magnetic field sensing in micro Tesla (uT)
     pub magnetic_field: Vector3<magnetic_flux_density::Dimension>,
+    /// The running time of the flight computer, from the moment the avionics have started up
+    pub running_time: Quantity<time::Dimension>
 }
 
 /// A vector representing a quantity in 3 dimensional space
@@ -156,7 +155,7 @@ pub trait Avionics: Debug + Send + Sync {
     ///
     /// This function can be thought of as the control signal generation step
     /// in a control loop
-    fn guide(&mut self, sensors: &Sensors) -> Option<Control>;
+    fn guide(&mut self, sensors: &Sensors) -> Control;
     // TODO: ABORT HANDLE
     // TODO: CUSTOM SENSORS OR CONTROL STRUCT/ENUM?
 }

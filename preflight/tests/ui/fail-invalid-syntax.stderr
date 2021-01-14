@@ -3,11 +3,3 @@ error: expected `,`
   |
 6 | #[avionics_harness(ooooo , eee / 0099 | gee)]
   |                                ^
-
-warning: unused imports: `Avionics`, `Control`, `Sensors`
- --> $DIR/fail-invalid-syntax.rs:1:35
-  |
-1 | use preflight::{avionics_harness, Avionics, Control, Sensors};
-  |                                   ^^^^^^^^  ^^^^^^^  ^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default

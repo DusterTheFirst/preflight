@@ -86,7 +86,7 @@ impl AvionicsHarness<PanicHang> {
 
 impl AvionicsHarness<PanicCaught> {
     /// Call into the avionics to request a guidance control signal given the inputted sensor data
-    pub fn guide(&mut self, sensors: Sensors) -> Option<Control> {
+    pub fn guide(&mut self, sensors: Sensors) -> Control {
         *LAST_SENSORS.write().unwrap() = sensors;
 
         (self.harness.avionics_guide)(&LAST_SENSORS.read().unwrap())

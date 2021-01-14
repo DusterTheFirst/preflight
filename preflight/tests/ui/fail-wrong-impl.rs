@@ -1,4 +1,4 @@
-use preflight::{avionics_harness, Avionics, Control, Sensors};
+use preflight::{avionics_harness};
 
 #[derive(Debug)]
 struct Controller;
@@ -11,7 +11,7 @@ impl Controller {
 
 trait Cool {}
 
-#[avionics_harness(default = "Controller::new")]
+#[avionics_harness(default = "Controller::new()")]
 impl Cool for Controller {}
 
 fn main() {}

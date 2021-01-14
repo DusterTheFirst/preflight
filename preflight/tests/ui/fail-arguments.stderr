@@ -1,13 +1,5 @@
 error: Unknown field: `arg`
-  --> $DIR/fail-arguments.rs:12:49
+  --> $DIR/fail-arguments.rs:12:51
    |
-12 | #[avionics_harness(default = "Controller::new", arg = "ument")]
-   |                                                 ^^^
-
-warning: unused imports: `Avionics`, `Control`, `Sensors`
- --> $DIR/fail-arguments.rs:1:35
-  |
-1 | use preflight::{avionics_harness, Avionics, Control, Sensors};
-  |                                   ^^^^^^^^  ^^^^^^^  ^^^^^^^
-  |
-  = note: `#[warn(unused_imports)]` on by default
+12 | #[avionics_harness(default = "Controller::new()", arg = "ument")]
+   |                                                   ^^^
