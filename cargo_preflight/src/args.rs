@@ -58,7 +58,7 @@ pub struct PanicHandleArguments {
 
 #[derive(StructOpt)]
 pub struct CargoArguments {
-    #[structopt(long, parse(from_os_str), env = "CARGO")]
+    #[structopt(long, parse(from_os_str), env = "CARGO", default_value = "cargo")]
     pub cargo_path: PathBuf,
     // TODO: more
     /// Path to Cargo.toml

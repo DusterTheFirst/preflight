@@ -13,12 +13,12 @@ use crate::{args::PanicHandleArguments, panic::panic_handle};
 #[derive(SymBorApi)]
 struct HarnessImpl<'a> {
     /// The callback into the avionics to request a control signal for guidance
-    avionics_guide: Symbol<'a, AvionicsGuide>,
+    avionics_guide: Ref<'a, AvionicsGuide>,
     /// A flag to ensure that the shared object was created with preflight
     #[dlopen_name = "__PREFLIGHT"]
     preflight: Ref<'a, bool>,
     /// Method to set the panic callback in order to be able to handle avionic panics
-    set_panic_callback: Symbol<'a, SetPanicCallback>,
+    set_panic_callback: Ref<'a, SetPanicCallback>,
 }
 
 pub struct AvionicsHarness<P: AvionicsHarnessState> {

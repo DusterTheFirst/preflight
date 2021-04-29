@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "preflight check",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/cargo-preflight",
+            "args": [
+                "preflight",
+                "check"
+            ],
+            "cwd": "${workspaceRoot}/example",
+        },
+        {
+            "name": "preflight test",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceRoot}/target/debug/cargo-preflight",
+            "args": [
+                "preflight",
+                "test"
+            ],
+            "cwd": "${workspaceRoot}/example",
+        }
+    ]
+}

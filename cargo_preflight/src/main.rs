@@ -3,7 +3,10 @@
 #[macro_use]
 extern crate dlopen_derive;
 
-use std::{io, process, time::{SystemTime, UNIX_EPOCH}};
+use std::{
+    io, process,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use anyhow::{anyhow, Context, Result};
 use args::{CargoArguments, CargoSpawnedArguments, PreflightCommand};
@@ -54,18 +57,18 @@ fn main() -> io::Result<()> {
                 shell.error(format!("{:#}", e))?;
 
                 process::exit(1); // TODO: get status code from rustc
-            },
+            }
             Ok(harness) => match test_harness(harness.setup_panic(panic)) {
                 Err(e) => {
                     shell.error(format!("{:#}", e))?;
 
                     process::exit(1);
-                },
+                }
                 Ok(false) => {
                     shell.error("harness failed to run")?;
 
                     process::exit(1);
-                },
+                }
                 Ok(true) => shell.status("Finished", "TODO:")?,
             },
         },
@@ -76,10 +79,9 @@ fn main() -> io::Result<()> {
 }
 
 fn test_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
-    let start_time = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs_f32();
+    let timestep = 1.0/60.0;
+
+    let mut running_time = 0.0;
 
     for _ in 0..10 {
         println!(
@@ -87,11 +89,6 @@ fn test_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
             Length::<SI<f64>, _>::new::<meter>(0.0f64)
                 .into_format_args(meter, preflight::uom::fmt::DisplayStyle::Description),
         );
-
-        let tick_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs_f32();
 
         let result = harness.guide(Sensors {
             altitude: Length::new::<meter>(0.0),
@@ -101,9 +98,11 @@ fn test_harness(mut harness: AvionicsHarness<PanicCaught>) -> Result<bool> {
             orientation: Vector3::zero(),
             angular_velocity: Vector3::zero(),
             magnetic_field: Vector3::zero(),
-            running_time: Time::new::<second>(tick_time - start_time),
+            running_time: Time::new::<second>(running_time),
         });
         dbg!(&result); // TODO:
+
+        running_time += timestep;
     }
 
     Ok(true)

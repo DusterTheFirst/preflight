@@ -10,11 +10,18 @@
 #![forbid(unsafe_code)]
 #![warn(missing_docs)]
 
-use core::{fmt::{self, Debug, Formatter}, marker::PhantomData};
+use core::{
+    fmt::{self, Debug, Formatter},
+    marker::PhantomData,
+};
 
+use uom::si::{
+    acceleration, angle, angular_velocity, length, magnetic_flux_density, time, Dimension, SI,
+};
+
+pub use micromath;
 pub use preflight_macros::avionics_harness;
-pub use uom;
-use uom::si::{Dimension, SI, acceleration, angle, angular_velocity, length, magnetic_flux_density, time};
+pub use uom; // FIXME: libcore math kinda lackin: https://github.com/rust-lang/rfcs/issues/2505 https://github.com/rust-lang/rust/issues/50145
 
 pub mod abi;
 
@@ -43,7 +50,7 @@ pub struct Sensors {
     /// Three axis of magnetic field sensing in micro Tesla (uT)
     pub magnetic_field: Vector3<magnetic_flux_density::Dimension>,
     /// The running time of the flight computer, from the moment the avionics have started up
-    pub running_time: Quantity<time::Dimension>
+    pub running_time: Quantity<time::Dimension>,
 }
 
 /// A vector representing a quantity in 3 dimensional space

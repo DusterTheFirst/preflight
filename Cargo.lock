@@ -379,6 +379,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
+name = "micromath"
+version = "1.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "be00a244d4394124986da477e8b2814dcb7995ab238817d9037bc336c4b0b843"
+
+[[package]]
 name = "nalgebra"
 version = "0.24.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -510,6 +516,7 @@ checksum = "ac74c624d6b2d21f425f752262f42188365d7b8ff1aff74c82e45136510a4857"
 name = "preflight"
 version = "0.1.0"
 dependencies = [
+ "micromath",
  "preflight_macros",
  "trybuild",
  "uom",
